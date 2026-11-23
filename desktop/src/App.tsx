@@ -8,6 +8,7 @@ const sourceNames: Record<AudioSourceId, string> = { microphone: "Microphone", d
 export default function App() {
   const engineRef = useRef<BroadcastAudioEngine | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunkQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [profile, setProfile] = useState<ServerProfile>(emptyProfile);
   const [validationRequested, setValidationRequested] = useState(false);
   const [storageMessage, setStorageMessage] = useState("");
@@ -109,7 +110,7 @@ export default function App() {
       const connected = await window.jradio.startBroadcast(profile);
       if (!connected.ok) throw new Error(connected.error ?? "The Icecast connection was rejected.");
       const recorder = new MediaRecorder(engine().getBroadcastStream(), { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: 128000 });
-      recorder.ondataavailable = async event => { if (event.data.size && window.jradio) window.jradio.sendAudioChunk(new Uint8Array(await event.data.arrayBuffer())); };
+      recorder.ondataavailable = event => { if (event.data.size && window.jradio) chunkQueueRef.current = chunkQueueRef.current.then(async () => { window.jradio?.sendAudioChunk(new Uint8Array(await event.data.arrayBuffer())); }); };
       recorder.onerror = () => { setAudioMessage("Audio capture failed. Stopping the broadcast."); void window.jradio?.stopBroadcast(); setBroadcasting(false); };
       recorder.onstop = () => { recorderRef.current = null; };
       recorderRef.current = recorder; recorder.start(250); setBroadcasting(true);
