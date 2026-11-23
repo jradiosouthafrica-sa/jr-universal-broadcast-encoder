@@ -205,9 +205,9 @@ class _StudioHomeState extends State<StudioHome> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                 decoration: BoxDecoration(
-                  color: Color.fromRGBO(statusColor.red, statusColor.green, statusColor.blue, .13),
+                  color: statusColor.withAlpha(33),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Color.fromRGBO(statusColor.red, statusColor.green, statusColor.blue, .45)),
+                  border: Border.all(color: statusColor.withAlpha(115)),
                 ),
                 child: Row(
                   children: [
@@ -271,7 +271,12 @@ class _StudioHomeState extends State<StudioHome> {
               selected: {_inputMode},
               onSelectionChanged: (_onAir || _working)
                   ? null
-                  : (selection) => setState(() => _inputMode = selection.first),
+                  : (selection) {
+                      setState(() => _inputMode = selection.first);
+                      if (selection.first == MobileInputMode.lineIn) {
+                        unawaited(_refreshInputDevices());
+                      }
+                    },
             ),
             const SizedBox(height: 10),
             Card(
@@ -291,7 +296,7 @@ class _StudioHomeState extends State<StudioHome> {
                     Expanded(
                       child: Text(
                         _inputMode == MobileInputMode.lineIn
-                            ? 'External line-in: connect your radio mixer to a USB audio interface or sound card with a genuine LINE INPUT. Raw audio is used; microphone gain, echo cancellation and noise suppression are disabled.'
+                            ? '3.5 mm headset-mic test: connect the mixer output through a compatible TRRS headset-mic adapter/cable with attenuation. Select Wired headset if Android lists it. This is a mono microphone input, not true stereo line-in; raw audio is used and voice processing is disabled.'
                             : 'Microphone: use the phone microphone, a USB microphone or another supported input. Select the connected input below.',
                         style: const TextStyle(color: Color(0xFFAAC0C8), height: 1.4),
                       ),
@@ -304,11 +309,11 @@ class _StudioHomeState extends State<StudioHome> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedInputId,
-                    decoration: const InputDecoration(
-                      labelText: _inputMode == MobileInputMode.lineIn ? 'Line-in device' : 'Microphone device',
+                    initialValue: _selectedInputId,
+                    decoration: InputDecoration(
+                      labelText: _inputMode == MobileInputMode.lineIn ? 'Wired / external input' : 'Microphone device',
                       helperText: _inputMode == MobileInputMode.lineIn
-                          ? 'Choose the USB interface input connected to your mixer'
+                          ? 'After plugging in, choose Wired headset if Android lists it'
                           : 'Choose a connected microphone or default input',
                     ),
                     items: [
@@ -464,7 +469,7 @@ class _StudioHomeState extends State<StudioHome> {
             const SizedBox(height: 17),
             const _Notice(
               icon: Icons.info_outline,
-              text: 'The Line-in mode is for a real line-level input on a compatible USB audio interface/sound card. A normal headset adapter may be output-only, and a mic-only socket is not converted into line-in by this setting. Set the mixer output level carefully to avoid clipping. This build sends one selected input at a time; multi-input mixing, SHOUTcast v1/v2, browser/app audio capture and Android playback capture are not implemented yet.',
+              text: 'The 3.5 mm test uses the tablet's headset microphone contact when Android exposes it as an input. It is normally mono microphone-level audio, not true stereo line-in. Use a compatible CTIA TRRS adapter/cable with attenuation between the mixer output and headset-mic input; never connect a speaker/amp output directly. If Wired headset does not appear in the input list, this tablet/adapter is not exposing the socket as a recording input. True stereo line-in will require suitable external audio hardware later. This build sends one selected input at a time; multi-input mixing, SHOUTcast v1/v2, browser/app audio capture and Android playback capture are not implemented yet.',
             ),
             const SizedBox(height: 12),
             const _Notice(
