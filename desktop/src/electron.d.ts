@@ -3,6 +3,7 @@ import type { ServerProfile } from "./serverProfiles";
 declare global {
   interface Window {
     jradio?: {
+      platform: string;
       saveProfile(profile: ServerProfile): Promise<{ ok: boolean; error?: string }>;
       loadProfile(): Promise<{ ok: boolean; profile?: ServerProfile | null; error?: string }>;
       startBroadcast(profile: ServerProfile): Promise<{ ok: boolean; error?: string }>;
