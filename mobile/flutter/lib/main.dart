@@ -273,12 +273,17 @@ class _StudioHomeState extends State<StudioHome> {
                 ButtonSegment(
                   value: MobileInputMode.microphone,
                   icon: Icon(Icons.mic),
-                  label: Text('Microphone'),
+                  label: Text('Mic'),
                 ),
                 ButtonSegment(
                   value: MobileInputMode.lineIn,
                   icon: Icon(Icons.cable),
                   label: Text('Line-in'),
+                ),
+                ButtonSegment(
+                  value: MobileInputMode.automation,
+                  icon: Icon(Icons.radio),
+                  label: Text('Automation'),
                 ),
               ],
               selected: {_inputMode},
@@ -291,6 +296,16 @@ class _StudioHomeState extends State<StudioHome> {
                       }
                     },
             ),
+            if (_inputMode == MobileInputMode.automation)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(14),
+                  child: Text(
+                    'Automation audio: open your web-based radio automation below, then return here and start broadcasting. Android will ask permission to capture eligible playback. This works only when the automation player allows audio capture; Android 10 or later is required.',
+                    style: TextStyle(color: Color(0xFFAAC0C8), height: 1.45),
+                  ),
+                ),
+              ),
             const SizedBox(height: 12),
             Card(
               child: Padding(
@@ -342,8 +357,9 @@ class _StudioHomeState extends State<StudioHome> {
                     Expanded(
                       child: Text(
                         _inputMode == MobileInputMode.lineIn
+                            ? _inputMode == MobileInputMode.lineIn
                             ? '3.5 mm headset-mic test: connect the mixer output through a compatible TRRS headset-mic adapter/cable with attenuation. Select Wired headset if Android lists it. This is a mono microphone input, not true stereo line-in; raw audio is used and voice processing is disabled.'
-                            : 'Microphone: use the phone microphone, a USB microphone or another supported input. Select the connected input below.',
+                            : 'Microphone: use the phone microphone or another supported input. Select the connected input below.',
                         style: const TextStyle(color: Color(0xFFAAC0C8), height: 1.4),
                       ),
                     ),
