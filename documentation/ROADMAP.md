@@ -57,7 +57,8 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 - [ ] Implement SHOUTcast v2 source connection, including stream ID selection, and validate against a real server.
 - [ ] Add AzuraCast live-source setup guidance and verify supported configurations.
 - [ ] Validate Icecast and SHOUTcast adapters against test servers.
-- [ ] Add reconnect, health state and secure credential storage.
+- [x] Add an Icecast auto-reconnect prototype with exponential backoff, connection-state reporting and a bounded encoded-audio buffer (implementation only; real-server interruption tests remain open).
+- [ ] Validate automatic reconnect, health state and secure credential storage against real Icecast and SHOUTcast servers.
 
 **Acceptance:** A controlled test stream is received and decoded by a compatible server/client; stop reliably terminates transmission.
 
