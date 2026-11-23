@@ -66,6 +66,7 @@ class _StudioHomeState extends State<StudioHome> {
   final AudioRecorder _deviceProbe = AudioRecorder();
   List<InputDevice> _inputDevices = [];
   String _selectedInputId = '';
+  MobileInputMode _inputMode = MobileInputMode.microphone;
   String _status = 'off';
   String _statusMessage = 'Set your station connection details to begin.';
   int _bitrate = 128;
@@ -125,6 +126,7 @@ class _StudioHomeState extends State<StudioHome> {
       password: _password.text,
       bitrateKbps: _bitrate,
       inputDevice: selectedInput,
+      inputMode: _inputMode,
     );
 
     final service = MobileBroadcastService(
@@ -247,23 +249,54 @@ class _StudioHomeState extends State<StudioHome> {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Capture your microphone and send a live AAC audio feed directly to an Icecast-compatible station server.',
+              'Capture a microphone or external mixer line-in and send live AAC audio directly to an Icecast-compatible station server.',
               style: TextStyle(color: Color(0xFFAAC0C8), height: 1.5),
             ),
             const SizedBox(height: 22),
             _sectionTitle('AUDIO INPUT'),
-            Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: const CircleAvatar(
-                  backgroundColor: Color(0xFF29414B),
-                  child: Icon(Icons.mic, color: Color(0xFFF2A33A)),
+            const SizedBox(height: 10),
+            SegmentedButton<MobileInputMode>(
+              segments: const [
+                ButtonSegment(
+                  value: MobileInputMode.microphone,
+                  icon: Icon(Icons.mic),
+                  label: Text('Microphone'),
                 ),
-                title: const Text('Device microphone', style: TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: const Text('Microphone, USB and supported audio input devices'),
-                trailing: Icon(
-                  _onAir || _working ? Icons.graphic_eq : Icons.mic_none,
-                  color: statusColor,
+                ButtonSegment(
+                  value: MobileInputMode.lineIn,
+                  icon: Icon(Icons.cable),
+                  label: Text('Line-in'),
+                ),
+              ],
+              selected: {_inputMode},
+              onSelectionChanged: (_onAir || _working)
+                  ? null
+                  : (selection) => setState(() => _inputMode = selection.first),
+            ),
+            const SizedBox(height: 10),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: const Color(0xFF29414B),
+                      child: Icon(
+                        _inputMode == MobileInputMode.lineIn ? Icons.cable : Icons.mic,
+                        color: const Color(0xFFF2A33A),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _inputMode == MobileInputMode.lineIn
+                            ? 'External line-in: connect your radio mixer to a USB audio interface or sound card with a genuine LINE INPUT. Raw audio is used; microphone gain, echo cancellation and noise suppression are disabled.'
+                            : 'Microphone: use the phone microphone, a USB microphone or another supported input. Select the connected input below.',
+                        style: const TextStyle(color: Color(0xFFAAC0C8), height: 1.4),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -273,8 +306,10 @@ class _StudioHomeState extends State<StudioHome> {
                   child: DropdownButtonFormField<String>(
                     value: _selectedInputId,
                     decoration: const InputDecoration(
-                      labelText: 'Input device',
-                      helperText: 'Choose a connected USB mic/interface or default input',
+                      labelText: _inputMode == MobileInputMode.lineIn ? 'Line-in device' : 'Microphone device',
+                      helperText: _inputMode == MobileInputMode.lineIn
+                          ? 'Choose the USB interface input connected to your mixer'
+                          : 'Choose a connected microphone or default input',
                     ),
                     items: [
                       const DropdownMenuItem(
@@ -429,7 +464,7 @@ class _StudioHomeState extends State<StudioHome> {
             const SizedBox(height: 17),
             const _Notice(
               icon: Icons.info_outline,
-              text: 'This mobile build sends one selected microphone or OS-exposed input device to Icecast-compatible source servers, including AzuraCast when configured with its Icecast source details. Multiple simultaneous mixed inputs, SHOUTcast v1/v2, browser/app audio capture and Android playback capture are not implemented yet. iOS input routing is managed by iOS.',
+              text: 'The Line-in mode is for a real line-level input on a compatible USB audio interface/sound card. A normal headset adapter may be output-only, and a mic-only socket is not converted into line-in by this setting. Set the mixer output level carefully to avoid clipping. This build sends one selected input at a time; multi-input mixing, SHOUTcast v1/v2, browser/app audio capture and Android playback capture are not implemented yet.',
             ),
             const SizedBox(height: 12),
             const _Notice(
