@@ -1,6 +1,7 @@
 name: Desktop checks
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "desktop/**"
