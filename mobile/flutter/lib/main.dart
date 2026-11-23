@@ -108,9 +108,9 @@ class _StudioHomeState extends State<StudioHome> {
     try {
       await service.start(profile);
     } catch (error) {
-      _setStatus('error', error.toString().replaceFirst('Bad state: ', ''));
       await service.dispose();
       _service = null;
+      _setStatus('error', error.toString().replaceFirst('Bad state: ', ''));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
