@@ -70,6 +70,7 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 - [ ] Add simultaneous multi-input mixing.
 - [ ] Implement eligible Android playback capture with clear limitations.
 - [x] Add Android foreground-service integration and persistent notification Stop control (manifest integration and device validation remain open).
+- [x] Add an in-app WebView workspace for operating web-based radio automation websites (browser navigation prototype; audio-to-encoder routing remains open).
 - [ ] Test screen lock, app switching, audio focus and battery behaviour on physical Android devices.
 - [ ] Test USB/Bluetooth routing on supported devices.
 
