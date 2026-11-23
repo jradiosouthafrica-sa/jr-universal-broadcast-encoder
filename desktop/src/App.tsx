@@ -12,9 +12,31 @@ const emptyProfile: ServerProfile = { name: "My station", type: "icecast", host:
 export default function App() {
   const [profile, setProfile] = useState<ServerProfile>(emptyProfile);
   const [validationRequested, setValidationRequested] = useState(false);
+  const [storageMessage, setStorageMessage] = useState("");
+  const [storageBusy, setStorageBusy] = useState(false);
   const validation = useMemo(() => validateServerProfile(profile), [profile]);
   const update = <K extends keyof ServerProfile>(key: K, value: ServerProfile[K]) => setProfile(current => ({ ...current, [key]: value }));
   const changeType = (type: ServerType) => { setProfile(current => ({ ...current, type })); setValidationRequested(false); };
+  const saveProfile = async () => {
+    if (!validation.valid) { setValidationRequested(true); setStorageMessage("Correct the profile errors before saving."); return; }
+    if (!window.jradio) { setStorageMessage("Secure storage is available only in the desktop application."); return; }
+    setStorageBusy(true);
+    try {
+      const result = await window.jradio.saveProfile(profile);
+      setStorageMessage(result.ok ? "Profile saved using encrypted device storage." : result.error ?? "Profile could not be saved.");
+    } catch { setStorageMessage("Profile could not be saved."); }
+    finally { setStorageBusy(false); }
+  };
+  const loadProfile = async () => {
+    if (!window.jradio) { setStorageMessage("Secure storage is available only in the desktop application."); return; }
+    setStorageBusy(true);
+    try {
+      const result = await window.jradio.loadProfile();
+      if (result.ok && result.profile) { setProfile(result.profile); setValidationRequested(false); setStorageMessage("Saved profile loaded from encrypted device storage."); }
+      else setStorageMessage(result.ok ? "No saved profile was found on this device." : result.error ?? "Profile could not be loaded.");
+    } catch { setStorageMessage("Profile could not be loaded."); }
+    finally { setStorageBusy(false); }
+  };
 
   return <main className="studio">
     <header className="topbar"><div className="brand"><span className="brand-mark">JR</span><div><strong>JRadio</strong><small>UNIVERSAL BROADCAST ENCODER</small></div></div><span className="status"><i /> NOT BROADCASTING</span></header>
@@ -32,9 +54,9 @@ export default function App() {
         {(profile.type==="shoutcast-v1"||profile.type==="shoutcast-v2")&&<div className="protocol-note">{profile.type==="shoutcast-v1"?"SHOUTcast v1 uses its own source login format. It does not use an Icecast mount-point field.":"SHOUTcast v2 uses a stream ID for the selected station stream."}</div>}
         {profile.type==="shoutcast-v2"&&<label>Stream ID<input value={profile.streamId??""} onChange={e=>update("streamId",e.target.value)} placeholder="1" inputMode="numeric"/></label>}
         {profile.type==="azuracast"&&<div className="protocol-note">Use the live-DJ/source connection details supplied by your AzuraCast station. Exact host, port, username and mount depend on that station's configuration.</div>}
-        <label className="full-width">Source password<input type="password" value={profile.sourcePassword} onChange={e=>update("sourcePassword",e.target.value)} placeholder="Enter source password" autoComplete="new-password"/><small className="field-help">Held only in this screen's memory for now. It is not saved to browser storage or sent anywhere.</small></label>
+        <label className="full-width">Source password<input type="password" value={profile.sourcePassword} onChange={e=>update("sourcePassword",e.target.value)} placeholder="Enter source password" autoComplete="new-password"/><small className="field-help">Stored only when you choose Save Securely; the desktop app encrypts the profile with your device's secure storage. It is never sent to a server.</small></label>
       </div>
-      <div className="validation-area"><button type="button" className="validate-button" onClick={()=>setValidationRequested(true)}>VALIDATE PROFILE</button>{validationRequested&&<div className={validation.valid?"validation-success":"validation-errors"}>{validation.valid?"Profile fields look valid. This does not test a server connection.":<ul>{validation.errors.map(error=><li key={error}>{error}</li>)}</ul>}</div>}</div>
+      <div className="validation-area"><button type="button" className="validate-button" onClick={()=>setValidationRequested(true)}>VALIDATE PROFILE</button><button type="button" className="validate-button" onClick={saveProfile} disabled={storageBusy}>SAVE SECURELY</button><button type="button" className="validate-button" onClick={loadProfile} disabled={storageBusy}>LOAD SAVED PROFILE</button>{validationRequested&&<div className={validation.valid?"validation-success":"validation-errors"}>{validation.valid?"Profile fields look valid. This does not test a server connection.":<ul>{validation.errors.map(error=><li key={error}>{error}</li>)}</ul>}</div>}{storageMessage&&<p className="field-help" role="status">{storageMessage}</p>}</div>
     </section>
     <section className="lower-grid"><article className="panel"><p className="eyebrow">MASTER BUS</p><h2>Programme output</h2><div className="master-meter"><span/></div><div className="master-value">— dB</div><p className="muted">The audio mixer and encoder are not connected yet.</p></article><article className="panel master"><p className="eyebrow">BROADCAST STATUS</p><h2>Ready when the engine is</h2><div className="placeholder">Profile validation is local only. No broadcast connection is made.</div><button type="button" disabled>START BROADCAST · NOT AVAILABLE YET</button></article></section>
     <footer>JRadio Universal Broadcast Encoder <span>Free and open-source project · Development build</span></footer>
