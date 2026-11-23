@@ -93,7 +93,7 @@ class MobileBroadcastService {
           onStatus('warning', 'Microphone stream error: $error');
         },
       );
-      onStatus('connecting', 'Connecting to \${profile.host}:\${profile.port}');
+      onStatus('connecting', 'Connecting to ${profile.host}:${profile.port}');
       unawaited(_connectionLoop(profile));
     } catch (_) {
       _active = false;
@@ -147,14 +147,14 @@ class MobileBroadcastService {
         );
 
         final credentials = base64.encode(
-          utf8.encode('\${profile.username}:\${profile.password}'),
+          utf8.encode('${profile.username}:${profile.password}'),
         );
         connectedSocket.write(
-          'SOURCE \${profile.mountPoint} HTTP/1.0\r\n'
+          'SOURCE ${profile.mountPoint} HTTP/1.0\r\n'
           'Authorization: Basic $credentials\r\n'
           'Content-Type: audio/aac\r\n'
           'User-Agent: JRadio-Universal-Broadcast-Encoder/0.2\r\n'
-          'ice-bitrate: \${profile.bitrateKbps}\r\n'
+          'ice-bitrate: ${profile.bitrateKbps}\r\n'
           '\r\n',
         );
 
@@ -181,7 +181,7 @@ class MobileBroadcastService {
       if (!_active) break;
       onStatus('reconnecting', 'Trying to reconnect to the station…');
       final seconds = retrySeconds[
-        _retryAttempt.clamp(0, retrySeconds.length - 1)
+        _retryAttempt.clamp(0, retrySeconds.length - 1).toInt()
       ];
       _retryAttempt++;
       await Future<void>.delayed(Duration(seconds: seconds));
