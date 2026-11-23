@@ -49,6 +49,20 @@ export default function App() {
 
   useEffect(() => {
     if (!window.jradio) return;
+    const removePcmListener = window.jradio.onWasapiPcm(chunk => engineRef.current?.addPcmChunk("desktop", chunk));
+    const removeStateListener = window.jradio.onWasapiState(event => {
+      setAudioMessage(event.message);
+      if (event.state === "error" || event.state === "stopped") {
+        engineRef.current?.stopSource("desktop");
+        setActive(current => ({ ...current, desktop: false }));
+        setLevels(current => ({ ...current, desktop: 0 }));
+      }
+    });
+    return () => { removePcmListener(); removeStateListener(); };
+  }, []);
+
+  useEffect(() => {
+    if (!window.jradio) return;
     return window.jradio.onBroadcastState(event => {
       setAudioMessage(event.message);
       if (event.state === "error" || event.state === "stopped") {
@@ -61,6 +75,7 @@ export default function App() {
   useEffect(() => () => {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
     void window.jradio?.stopBroadcast();
+    void window.jradio?.stopWasapiCapture();
     void engineRef.current?.stop();
   }, []);
 
@@ -117,7 +132,24 @@ export default function App() {
       setAudioMessage(error instanceof Error ? error.message : "Could not start this audio source.");
     } finally { setAudioBusy(false); }
   };
+  const captureWasapiLoopback = async () => {
+    if (!window.jradio) { setAudioMessage("WASAPI loopback is available in the installed Windows desktop app, not the browser preview."); return; }
+    setAudioBusy(true);
+    try {
+      await engine().addPcmSource("desktop");
+      const result = await window.jradio.startWasapiCapture();
+      if (!result.ok) {
+        engineRef.current?.stopSource("desktop");
+        throw new Error(result.error ?? "Windows WASAPI loopback could not start.");
+      }
+      setAudioMessage(result.message ?? "Windows WASAPI system-audio loopback is starting.");
+    } catch (error) {
+      engineRef.current?.stopSource("desktop");
+      setAudioMessage(error instanceof Error ? error.message : "WASAPI capture could not start.");
+    } finally { setAudioBusy(false); }
+  };
   const stopSource = (id: AudioSourceId) => {
+    if (id === "desktop") void window.jradio?.stopWasapiCapture();
     engineRef.current?.stopSource(id);
     setActive(current => ({ ...current, [id]: false }));
     setLevels(current => ({ ...current, [id]: 0 }));
@@ -179,6 +211,7 @@ export default function App() {
   };
   const stopAllAudio = async () => {
     if (broadcasting) await stopBroadcast();
+    await window.jradio?.stopWasapiCapture();
     await engineRef.current?.stop();
     engineRef.current = null;
     setActive({ microphone: false, desktop: false, device: false });
@@ -220,7 +253,7 @@ export default function App() {
             <div className="meter" aria-label={`Audio level ${Math.round(levels[id] * 100)} percent`}>{meterBars(levels[id])}</div>
             <div className="source-controls"><label>Volume <input type="range" min="0" max="100" value={Math.round(volumes[id] * 100)} disabled={!active[id]} onChange={e => changeVolume(id, Number(e.target.value))}/><span>{Math.round(volumes[id] * 100)}%</span></label>
               {id === "device" && <div className="device-picker"><select value={selectedDeviceId} onChange={e => setSelectedDeviceId(e.target.value)} disabled={active.device || audioBusy}><option value="">Select an audio input…</option>{inputDevices.map(device => <option value={device.deviceId} key={device.deviceId}>{device.label}</option>)}</select><button className="small-button" disabled={audioBusy || active.device} onClick={() => void refreshInputDevices()}>REFRESH DEVICES</button>{deviceWarning && <small className="field-help" role="alert">{deviceWarning}</small>}</div>}
-              {active[id] ? <><button className="small-button" onClick={() => toggleMute(id)}>{muted[id] ? "UNMUTE" : "MUTE"}</button><button className="small-button stop" onClick={() => stopSource(id)}>STOP</button></> : <button className="small-button capture" disabled={audioBusy || (id === "device" && !selectedDeviceId)} onClick={() => void capture(id)}>{id === "microphone" ? "CAPTURE MIC" : id === "device" ? "CONNECT DEVICE" : "CAPTURE DESKTOP AUDIO"}</button>}
+              {active[id] ? <><button className="small-button" onClick={() => toggleMute(id)}>{muted[id] ? "UNMUTE" : "MUTE"}</button><button className="small-button stop" onClick={() => stopSource(id)}>STOP</button></> : <><button className="small-button capture" disabled={audioBusy || (id === "device" && !selectedDeviceId)} onClick={() => void capture(id)}>{id === "microphone" ? "CAPTURE MIC" : id === "device" ? "CONNECT DEVICE" : "CAPTURE SHARED AUDIO"}</button>{id === "desktop" && <button className="small-button" disabled={audioBusy} onClick={() => void captureWasapiLoopback()}>CAPTURE WASAPI SYSTEM AUDIO</button>}</>}
             </div>
           </div>
         </article>)}
