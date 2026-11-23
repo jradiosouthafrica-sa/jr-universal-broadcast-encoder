@@ -155,7 +155,7 @@ class MobileBroadcastService {
           'Content-Type: audio/aac\r\n'
           'User-Agent: JRadio-Universal-Broadcast-Encoder/0.2\r\n'
           'ice-bitrate: \${profile.bitrateKbps}\r\n'
-          'Connection: close\r\n\r\n',
+          '\r\n',
         );
 
         await handshake.future.timeout(const Duration(seconds: 10));
