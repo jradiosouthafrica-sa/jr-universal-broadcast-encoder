@@ -35,7 +35,6 @@ class MobileIcecastProfile {
     if (host.trim().isEmpty) return 'Enter the Icecast server host.';
     if (port < 1 || port > 65535) return 'Port must be between 1 and 65535.';
     if (!mountPoint.startsWith('/')) return 'Mount point must start with /.';
-    if (mountPoint.length < 2) return 'Enter a mount point, for example /live.';
     if (username.trim().isEmpty) return 'Enter the source username.';
     if (password.isEmpty) return 'Enter the source password.';
     if (bitrateKbps < 32 || bitrateKbps > 320) {
