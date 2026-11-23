@@ -1,0 +1,31 @@
+name: Mobile checks
+
+on:
+  push:
+    paths:
+      - "mobile/flutter/**"
+      - ".github/workflows/mobile-checks.yml"
+  pull_request:
+    paths:
+      - "mobile/flutter/**"
+      - ".github/workflows/mobile-checks.yml"
+  workflow_dispatch:
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        working-directory: mobile/flutter
+        run: flutter pub get
+      - name: Analyze
+        working-directory: mobile/flutter
+        run: flutter analyze
+      - name: Test
+        working-directory: mobile/flutter
+        run: flutter test
