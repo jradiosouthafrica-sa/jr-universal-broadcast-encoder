@@ -68,10 +68,12 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 - [x] Implement a microphone-to-AAC-LC stream and direct Icecast source connection (implementation prototype; device/server validation open).
 - [x] Add OS-exposed input-device enumeration and selection (prototype; USB/Bluetooth hardware validation remains open).
 - [ ] Add simultaneous multi-input mixing.
-- [ ] Implement eligible Android playback capture with clear limitations.
+- [x] Add Android MediaProjection playback-capture-to-AAC prototype with user consent and capture-policy limits (CI build only; physical-device validation remains open).
 - [x] Add Android foreground-service integration and persistent notification Stop control (manifest integration and device validation remain open).
 - [x] Add an in-app WebView workspace for operating web-based radio automation systems that lack their own broadcast encoder (browser navigation prototype; automation audio-to-encoder routing remains open).
 - [ ] Route audio from the in-app automation workspace into the AAC encoder so the automation programme, not only the microphone/line-in, can be broadcast.
+- [ ] Verify that in-app WebView automation audio is captured and streamed to an Icecast test mount on a physical Android device.
+- [ ] Verify eligible third-party automation app audio capture, including the app's capture policy, on a physical Android device.
 - [ ] Test screen lock, app switching, audio focus and battery behaviour on physical Android devices.
 - [ ] Test USB/Bluetooth routing on supported devices.
 
