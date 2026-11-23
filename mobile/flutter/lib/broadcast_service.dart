@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:record/record.dart';
 
+enum MobileInputMode { microphone, lineIn }
+
 class MobileIcecastProfile {
   const MobileIcecastProfile({
     required this.host,
@@ -14,6 +16,7 @@ class MobileIcecastProfile {
     required this.password,
     this.bitrateKbps = 128,
     this.inputDevice,
+    this.inputMode = MobileInputMode.microphone,
   });
 
   final String host;
@@ -23,6 +26,7 @@ class MobileIcecastProfile {
   final String password;
   final int bitrateKbps;
   final InputDevice? inputDevice;
+  final MobileInputMode inputMode;
 
   String? validate() {
     if (host.trim().isEmpty) return 'Enter the Icecast server host.';
@@ -79,6 +83,10 @@ class MobileBroadcastService {
           sampleRate: 44100,
           numChannels: 2,
           device: profile.inputDevice,
+          // Keep a mixer feed raw; voice processing can pump or gate music.
+          autoGain: profile.inputMode == MobileInputMode.microphone,
+          echoCancel: profile.inputMode == MobileInputMode.microphone,
+          noiseSuppress: profile.inputMode == MobileInputMode.microphone,
         ),
       );
       _audioSubscription = audio.listen(
@@ -95,7 +103,7 @@ class MobileBroadcastService {
           }
         },
         onError: (Object error) {
-          onStatus('warning', 'Microphone stream error: $error');
+          onStatus('warning', 'Audio input stream error: $error');
         },
       );
       onStatus('connecting', 'Connecting to ${profile.host}:${profile.port}');
@@ -168,7 +176,7 @@ class MobileBroadcastService {
         _socket = connectedSocket;
         _socketSubscription = subscription;
         _retryAttempt = 0;
-        onStatus('live', 'Connected to Icecast. AAC audio is being sent.');
+        onStatus('live', 'Connected to Icecast. ${profile.inputMode == MobileInputMode.lineIn ? 'External line-in' : 'Microphone'} audio is being sent.');
         await connectedSocket.done;
       } catch (error) {
         if (_active) {
