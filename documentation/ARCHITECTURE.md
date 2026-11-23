@@ -15,7 +15,7 @@ External input ───┘                                  │
                                            Encoder / format adapter
                                                      │
                                                      v
-                                      Icecast / AzuraCast / Shoutcast
+                                      Icecast / SHOUTcast / AzuraCast
 ```
 
 Each source should have independent gain, mute state, signal metering and error reporting. The mixer must continue to handle available sources if another source is unavailable.
