@@ -50,8 +50,10 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 - [ ] Implement MP3 output first if the selected build permits redistribution.
 - [ ] Add configurable bitrate and sample-rate profiles.
 - [ ] Implement Icecast source connection and disconnect.
-- [ ] Validate with a test Icecast-compatible server.
-- [ ] Verify AzuraCast and supported Shoutcast configurations.
+- [ ] Implement SHOUTcast v1 source connection and validate authentication/streaming.
+- [ ] Implement SHOUTcast v2 source connection, including stream ID selection, and validate against a real server.
+- [ ] Add AzuraCast live-source setup guidance and verify supported configurations.
+- [ ] Validate Icecast and SHOUTcast adapters against test servers.
 - [ ] Add reconnect, health state and secure credential storage.
 
 **Acceptance:** A controlled test stream is received and decoded by a compatible server/client; stop reliably terminates transmission.
