@@ -1,6 +1,6 @@
 # Mobile application
 
-Flutter application for the JRadio Universal Broadcast Encoder.
+Flutter application for the JRadio Universal Broadcast Encoder. Its primary purpose is to provide the broadcast encoder for radio automation applications that do not include their own encoder: the automation system plays the programme, and JRadio Encoder is responsible for encoding and sending that programme to the station server.
 
 ## Current implementation
 
@@ -12,8 +12,8 @@ Flutter application for the JRadio Universal Broadcast Encoder.
 - Source authentication, connection status and automatic reconnect with exponential backoff.
 - Android foreground service with persistent broadcast notification and a Stop action.
 - Responsive phone/tablet layout.
-- An in-app WebView workspace that opens web-based radio automation websites without leaving the encoder, with address navigation, back/forward and reload controls.
-- The browser workspace is currently a UI/navigation milestone only: its WebView audio is not yet routed into the broadcast encoder. The live source remains the selected microphone or external input until the dedicated browser-audio bridge is implemented and tested.
+- An in-app WebView workspace intended for operating web-based radio automation systems that do not have their own broadcast encoder.
+- The browser workspace is currently a UI/navigation milestone only: its WebView audio is not yet routed into the broadcast encoder. The live source remains the selected microphone or external input until the dedicated automation-audio bridge is implemented and tested.
 
 ## Important limits
 
