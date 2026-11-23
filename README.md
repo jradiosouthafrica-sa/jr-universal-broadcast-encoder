@@ -17,7 +17,7 @@ The goal is to let a broadcaster combine supported audio sources—websites, des
 ## Planned capabilities
 
 - Open websites in an integrated browser and launch installed desktop applications.
-- Capture supported browser, system, application and external-device audio sources.
+- Capture supported browser, system, application and external-device audio sources, including selectable soundcards and virtual audio cable inputs (desktop prototype added).
 - Mix independent sources with channel faders, mute controls, meters and a master output. (Desktop microphone and OS-selected desktop audio prototype implemented.)
 - Mix microphone input with programme audio.
 - Encode supported formats and bitrates. (Initial FFmpeg-backed Icecast output path implemented; requires FFmpeg on PATH.)
@@ -29,7 +29,7 @@ The goal is to let a broadcaster combine supported audio sources—websites, des
 
 Audio capture is governed by each operating system and by the source application's capture policy. Android playback capture works only for eligible apps and audio streams. iOS does not provide unrestricted capture of arbitrary audio from other apps. Desktop system and per-application capture also varies by OS version, permissions and audio backend.
 
-The application will explain unavailable capture modes instead of promising unrestricted system-wide capture.
+The desktop prototype includes a selectable OS audio-input channel for physical soundcards, USB/line inputs and installed virtual loopback cable devices. A virtual cable driver must be installed separately and configured as the source application's playback destination. The application will explain unavailable capture modes instead of promising unrestricted system-wide capture.
 
 ## Architecture direction
 
