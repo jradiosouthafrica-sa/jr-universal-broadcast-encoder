@@ -176,9 +176,9 @@ class _StudioHomeState extends State<StudioHome> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: .13),
+                  color: statusColor.withOpacity(.13),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: statusColor.withValues(alpha: .45)),
+                  border: Border.all(color: statusColor.withOpacity(.45)),
                 ),
                 child: Row(
                   children: [
