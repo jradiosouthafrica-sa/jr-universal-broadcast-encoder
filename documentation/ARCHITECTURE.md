@@ -67,7 +67,21 @@ Credentials must be stored using platform secure storage where available. Never 
 
 ## Broadcast output
 
-Implement protocol adapters behind one output interface. Begin with Icecast-compatible source streaming, then verify AzuraCast and supported Shoutcast configurations against real servers. Codec and container support depends on the selected encoder build and the server's accepted source format.
+Implement protocol adapters behind one output interface, not one generic form with assumed-identical fields. Provide distinct Icecast and SHOUTcast adapters, and an AzuraCast setup path that targets the station's configured compatible source protocol.
+
+### Icecast
+
+Support host, source port, mount point, source username when required by the server, source password, codec and bitrate. Validate mount syntax and server response.
+
+### SHOUTcast
+
+Support SHOUTcast v1 and v2 as distinct configuration modes where validated. Provide host, source port, source password and the v2 stream ID/stream selection fields required by the selected server and source client. Do not assume Icecast mount-point semantics apply to SHOUTcast. Confirm exact authentication and stream-selection behaviour against real SHOUTcast server versions before marking an adapter complete.
+
+### AzuraCast
+
+Provide a guided profile for an AzuraCast station's configured live-DJ/source connection. Use the connection type and credentials supplied by the station's AzuraCast configuration; do not assume every AzuraCast installation uses the same host, port, mount or protocol.
+
+Codec and container support depends on the selected encoder build and the server's accepted source format. Each adapter must report authentication, connection and stream errors clearly.
 
 Connection handling must include bounded reconnect backoff, clear state transitions, user-visible errors and an immediate stop action.
 
