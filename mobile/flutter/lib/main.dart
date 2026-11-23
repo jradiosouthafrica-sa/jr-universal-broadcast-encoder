@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:record/record.dart';
 
 import 'broadcast_service.dart';
 
@@ -62,6 +63,9 @@ class _StudioHomeState extends State<StudioHome> {
   final _formKey = GlobalKey<FormState>();
 
   MobileBroadcastService? _service;
+  final AudioRecorder _deviceProbe = AudioRecorder();
+  List<InputDevice> _inputDevices = [];
+  String _selectedInputId = '';
   String _status = 'off';
   String _statusMessage = 'Set your station connection details to begin.';
   int _bitrate = 128;
@@ -75,6 +79,23 @@ class _StudioHomeState extends State<StudioHome> {
   void initState() {
     super.initState();
     FlutterForegroundTask.addTaskDataCallback(_onTaskData);
+    unawaited(_refreshInputDevices());
+  }
+
+  Future<void> _refreshInputDevices() async {
+    try {
+      final devices = await _deviceProbe.listInputDevices();
+      if (!mounted) return;
+      setState(() {
+        _inputDevices = devices;
+        if (_selectedInputId.isNotEmpty &&
+            !devices.any((device) => device.id == _selectedInputId)) {
+          _selectedInputId = '';
+        }
+      });
+    } catch (error) {
+      _setStatus('warning', 'Could not list audio inputs: $error');
+    }
   }
 
   void _onTaskData(Object data) {
@@ -92,6 +113,10 @@ class _StudioHomeState extends State<StudioHome> {
   Future<void> _startBroadcast() async {
     if (!_formKey.currentState!.validate() || _busy) return;
     setState(() => _busy = true);
+    InputDevice? selectedInput;
+    for (final device in _inputDevices) {
+      if (device.id == _selectedInputId) selectedInput = device;
+    }
     final profile = MobileIcecastProfile(
       host: _host.text.trim(),
       port: int.parse(_port.text.trim()),
@@ -99,6 +124,7 @@ class _StudioHomeState extends State<StudioHome> {
       username: _username.text.trim(),
       password: _password.text,
       bitrateKbps: _bitrate,
+      inputDevice: selectedInput,
     );
 
     final service = MobileBroadcastService(
@@ -138,6 +164,7 @@ class _StudioHomeState extends State<StudioHome> {
     _mount.dispose();
     _username.dispose();
     _password.dispose();
+    unawaited(_deviceProbe.dispose());
     super.dispose();
   }
 
@@ -233,12 +260,46 @@ class _StudioHomeState extends State<StudioHome> {
                   child: Icon(Icons.mic, color: Color(0xFFF2A33A)),
                 ),
                 title: const Text('Device microphone', style: TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: const Text('Live microphone capture · AAC-LC'),
+                subtitle: const Text('Microphone, USB and supported audio input devices'),
                 trailing: Icon(
                   _onAir || _working ? Icons.graphic_eq : Icons.mic_none,
                   color: statusColor,
                 ),
               ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedInputId,
+                    decoration: const InputDecoration(
+                      labelText: 'Input device',
+                      helperText: 'Choose a connected USB mic/interface or default input',
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text('Default device'),
+                      ),
+                      ..._inputDevices.map(
+                        (device) => DropdownMenuItem(
+                          value: device.id,
+                          child: Text(device.label, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+                    ],
+                    onChanged: (_onAir || _working)
+                        ? null
+                        : (value) => setState(() => _selectedInputId = value ?? ''),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Refresh audio inputs',
+                  onPressed: (_onAir || _working) ? null : _refreshInputDevices,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             _sectionTitle('STATION CONNECTION'),
@@ -368,7 +429,7 @@ class _StudioHomeState extends State<StudioHome> {
             const SizedBox(height: 17),
             const _Notice(
               icon: Icons.info_outline,
-              text: 'This mobile build currently sends microphone audio to Icecast-compatible source servers, including AzuraCast when configured with its Icecast source details. SHOUTcast v1/v2, multiple mixed inputs, browser/app audio capture and external USB routing are not implemented in the mobile build yet.',
+              text: 'This mobile build sends one selected microphone or OS-exposed input device to Icecast-compatible source servers, including AzuraCast when configured with its Icecast source details. Multiple simultaneous mixed inputs, SHOUTcast v1/v2, browser/app audio capture and Android playback capture are not implemented yet. iOS input routing is managed by iOS.',
             ),
             const SizedBox(height: 12),
             const _Notice(
