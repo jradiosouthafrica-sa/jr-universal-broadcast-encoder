@@ -7,6 +7,7 @@ const sourceNames: Record<AudioSourceId, string> = { microphone: "Microphone", d
 
 export default function App() {
   const engineRef = useRef<BroadcastAudioEngine | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
   const [profile, setProfile] = useState<ServerProfile>(emptyProfile);
   const [validationRequested, setValidationRequested] = useState(false);
   const [storageMessage, setStorageMessage] = useState("");
@@ -21,6 +22,7 @@ export default function App() {
   const [levels, setLevels] = useState<Record<AudioSourceId, number>>({ microphone: 0, desktop: 0 });
   const [masterLevel, setMasterLevel] = useState(0);
   const [mixReady, setMixReady] = useState(false);
+  const [broadcasting, setBroadcasting] = useState(false);
   const validation = useMemo(() => validateServerProfile(profile), [profile]);
   const update = <K extends keyof ServerProfile>(key: K, value: ServerProfile[K]) => setProfile(current => ({ ...current, [key]: value }));
   const changeType = (type: ServerType) => { setProfile(current => ({ ...current, type })); setValidationRequested(false); };
@@ -40,7 +42,22 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => () => { void engineRef.current?.stop(); }, []);
+  useEffect(() => {
+    if (!window.jradio) return;
+    return window.jradio.onBroadcastState(event => {
+      setAudioMessage(event.message);
+      if (event.state === "error" || event.state === "stopped") {
+        setBroadcasting(false);
+        if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+        recorderRef.current = null;
+      }
+    });
+  }, []);
+  useEffect(() => () => {
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    void window.jradio?.stopBroadcast();
+    void engineRef.current?.stop();
+  }, []);
 
   const capture = async (id: AudioSourceId) => {
     setAudioBusy(true);
@@ -80,6 +97,30 @@ export default function App() {
     const next = !masterMuted;
     setMasterMuted(next);
     engineRef.current?.setMasterMuted(next);
+  };
+  const startBroadcast = async () => {
+    if (profile.type !== "icecast") { setAudioMessage("This first streaming adapter supports Icecast only. SHOUTcast v1/v2 and AzuraCast transports are next."); return; }
+    if (!validation.valid) { setValidationRequested(true); setAudioMessage("Complete and validate the Icecast server profile before connecting."); return; }
+    if (!window.jradio) { setAudioMessage("Live streaming is available in the installed desktop application, not the browser preview."); return; }
+    if (!mixReady) { setAudioMessage("Connect at least one audio source before starting the broadcast."); return; }
+    if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) { setAudioMessage("This desktop runtime does not support the required WebM/Opus capture format."); return; }
+    setAudioBusy(true); setAudioMessage("Connecting to the Icecast source…");
+    try {
+      const connected = await window.jradio.startBroadcast(profile);
+      if (!connected.ok) throw new Error(connected.error ?? "The Icecast connection was rejected.");
+      const recorder = new MediaRecorder(engine().getBroadcastStream(), { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: 128000 });
+      recorder.ondataavailable = async event => { if (event.data.size && window.jradio) window.jradio.sendAudioChunk(new Uint8Array(await event.data.arrayBuffer())); };
+      recorder.onerror = () => { setAudioMessage("Audio capture failed. Stopping the broadcast."); void window.jradio?.stopBroadcast(); setBroadcasting(false); };
+      recorder.onstop = () => { recorderRef.current = null; };
+      recorderRef.current = recorder; recorder.start(250); setBroadcasting(true);
+      setAudioMessage("LIVE · Icecast accepted the source connection. Encoded audio is being sent.");
+    } catch (error) { await window.jradio.stopBroadcast(); setBroadcasting(false); setAudioMessage(error instanceof Error ? error.message : "Could not start the broadcast."); }
+    finally { setAudioBusy(false); }
+  };
+  const stopBroadcast = async () => {
+    setAudioBusy(true);
+    try { const recorder = recorderRef.current; if (recorder && recorder.state !== "inactive") recorder.stop(); recorderRef.current = null; await window.jradio?.stopBroadcast(); setBroadcasting(false); setAudioMessage("Broadcast stopped. Your audio sources remain available in the mixer."); }
+    finally { setAudioBusy(false); }
   };
   const stopAllAudio = async () => {
     await engineRef.current?.stop();
@@ -147,7 +188,7 @@ export default function App() {
       </div>
       <div className="validation-area"><button type="button" className="validate-button" onClick={()=>setValidationRequested(true)}>VALIDATE PROFILE</button><button type="button" className="validate-button" onClick={saveProfile} disabled={storageBusy}>SAVE SECURELY</button><button type="button" className="validate-button" onClick={loadProfile} disabled={storageBusy}>LOAD SAVED PROFILE</button>{validationRequested&&<div className={validation.valid?"validation-success":"validation-errors"}>{validation.valid?"Profile fields look valid. This does not test a server connection.":<ul>{validation.errors.map(error=><li key={error}>{error}</li>)}</ul>}</div>}{storageMessage&&<p className="field-help" role="status">{storageMessage}</p>}</div>
     </section>
-    <section className="lower-grid"><article className="panel"><p className="eyebrow">MASTER BUS</p><h2>Programme output</h2><div className="master-meter"><span style={{ width: `${Math.round(masterLevel * 100)}%` }}/></div><div className="master-value">{Math.round(masterLevel * 100)}% signal</div><div className="master-controls"><label>Master volume <input type="range" min="0" max="100" value={Math.round(masterVolume * 100)} onChange={e => changeMasterVolume(Number(e.target.value))}/></label><button className="small-button" onClick={toggleMasterMute}>{masterMuted ? "UNMUTE MASTER" : "MUTE MASTER"}</button></div><p className="muted">The programme mix combines active input channels into one audio stream.</p></article><article className="panel master"><p className="eyebrow">BROADCAST STATUS</p><h2>Audio engine online</h2><div className="placeholder">{mixReady ? "A mixed audio stream is available inside this app. No encoder or server connection is active." : "Connect a microphone or desktop audio source to create the programme mix."}</div><button type="button" disabled>START BROADCAST · ENCODER NOT BUILT</button></article></section>
+    <section className="lower-grid"><article className="panel"><p className="eyebrow">MASTER BUS</p><h2>Programme output</h2><div className="master-meter"><span style={{ width: `${Math.round(masterLevel * 100)}%` }}/></div><div className="master-value">{Math.round(masterLevel * 100)}% signal</div><div className="master-controls"><label>Master volume <input type="range" min="0" max="100" value={Math.round(masterVolume * 100)} onChange={e => changeMasterVolume(Number(e.target.value))}/></label><button className="small-button" onClick={toggleMasterMute}>{masterMuted ? "UNMUTE MASTER" : "MUTE MASTER"}</button></div><p className="muted">The programme mix combines active input channels into one audio stream.</p></article><article className="panel master"><p className="eyebrow">BROADCAST STATUS</p><h2>{broadcasting ? "Broadcast is live" : "Ready to broadcast"}</h2><div className="placeholder">{broadcasting ? "Your programme mix is being encoded by FFmpeg and sent to the Icecast source." : "Connect a source, complete the server profile and start the Icecast broadcast. FFmpeg must be installed and available on PATH."}</div>{broadcasting ? <button type="button" className="live-stop" disabled={audioBusy} onClick={() => void stopBroadcast()}>STOP BROADCAST</button> : <button type="button" disabled={!mixReady || audioBusy} onClick={() => void startBroadcast()}>START ICECAST BROADCAST</button>}</article></section>
     <footer>JRadio Universal Broadcast Encoder <span>Free and open-source project · Development build</span></footer>
   </main>;
 }
