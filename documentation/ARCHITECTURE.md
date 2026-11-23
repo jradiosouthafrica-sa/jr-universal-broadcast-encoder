@@ -28,7 +28,7 @@ Each source should have independent gain, mute state, signal metering and error 
 
 Capture backends are platform-specific:
 
-- Windows: enumerate selectable WASAPI/WDM audio input endpoints, including soundcards and virtual cable recording endpoints; add native WASAPI loopback and investigate per-application capture support and version requirements.
+- Windows: renderer-level audio-input enumeration currently exposes soundcards and virtual cable recording endpoints. A first native system-output loopback prototype invokes FFmpeg's WASAPI input with loopback enabled and injects 48 kHz stereo PCM into the desktop mixer channel. It currently targets the default playback endpoint; individual playback-endpoint selection, native physical-input capture, per-application capture and hardware validation remain open.
 - macOS: enumerate CoreAudio input devices and support virtual loopback drivers such as BlackHole where installed, respecting system permissions and supported capture APIs.
 - Linux: enumerate PipeWire input nodes, including virtual sinks/monitor sources; provide PulseAudio compatibility where practical.
 
