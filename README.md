@@ -38,7 +38,7 @@ The application will explain unavailable capture modes instead of promising unre
 - **Desktop UI:** Electron with React and TypeScript.
 - **Mobile UI:** Flutter with native Android and iOS audio integrations.
 - **Audio engine:** A separately testable native audio layer; Rust is the current candidate.
-- **Broadcasting:** A modular encoder/output layer for Icecast-compatible streaming.
+- **Broadcasting:** A modular output layer with separate Icecast and SHOUTcast adapters, plus an AzuraCast-compatible configuration path.
 - **Shared models:** Station profiles, source configuration and stream settings.
 
 Technology choices remain subject to prototype testing and dependency-license review.
