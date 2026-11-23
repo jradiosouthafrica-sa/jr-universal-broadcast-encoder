@@ -66,7 +66,8 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 
 - [x] Create Flutter application shell and responsive phone/tablet broadcast console (prototype).
 - [x] Implement a microphone-to-AAC-LC stream and direct Icecast source connection (implementation prototype; device/server validation open).
-- [ ] Add selectable external input capture and multiple-source mixing.
+- [x] Add OS-exposed input-device enumeration and selection (prototype; USB/Bluetooth hardware validation remains open).
+- [ ] Add simultaneous multi-input mixing.
 - [ ] Implement eligible Android playback capture with clear limitations.
 - [x] Add Android foreground-service integration and persistent notification Stop control (manifest integration and device validation remain open).
 - [ ] Test screen lock, app switching, audio focus and battery behaviour on physical Android devices.
