@@ -11,6 +11,8 @@ Web browser audio ─┐
 Desktop app audio ─┤
 Microphone input ──┼─> Source capture ─> Channel mixer ─> Master processing
 External input ───┘                                  │
+
+Desktop device routing includes selectable OS audio-input endpoints. A physical soundcard, USB/line input or virtual loopback cable appears as a source when the OS exposes it as an audio input. Virtual cable drivers are installed and configured outside this application; route an application's playback output to the cable, then select its recording/input endpoint in the encoder.
                                                      v
                                            Encoder / format adapter
                                                      │
@@ -26,9 +28,9 @@ Each source should have independent gain, mute state, signal metering and error 
 
 Capture backends are platform-specific:
 
-- Windows: WASAPI loopback; investigate per-application capture support and version requirements.
-- macOS: CoreAudio-based capture, respecting system permissions and supported capture APIs.
-- Linux: PipeWire first, with PulseAudio compatibility where practical.
+- Windows: enumerate selectable WASAPI/WDM audio input endpoints, including soundcards and virtual cable recording endpoints; add native WASAPI loopback and investigate per-application capture support and version requirements.
+- macOS: enumerate CoreAudio input devices and support virtual loopback drivers such as BlackHole where installed, respecting system permissions and supported capture APIs.
+- Linux: enumerate PipeWire input nodes, including virtual sinks/monitor sources; provide PulseAudio compatibility where practical.
 
 The app should distinguish the integrated browser from separately installed applications. Websites may run in an embedded browser. Installed applications normally launch in their own windows; the encoder captures their audio only when the operating system/backend supports it.
 
