@@ -489,7 +489,7 @@ class _StudioHomeState extends State<StudioHome> {
             const SizedBox(height: 17),
             const _Notice(
               icon: Icons.info_outline,
-              text: 'The 3.5 mm test uses the tablet's headset microphone contact when Android exposes it as an input. It is normally mono microphone-level audio, not true stereo line-in. Use a compatible CTIA TRRS adapter/cable with attenuation between the mixer output and headset-mic input; never connect a speaker/amp output directly. If Wired headset does not appear in the input list, this tablet/adapter is not exposing the socket as a recording input. True stereo line-in will require suitable external audio hardware later. This build sends one selected input at a time; multi-input mixing, SHOUTcast v1/v2, browser/app audio capture and Android playback capture are not implemented yet.',
+              text: "The 3.5 mm test uses the tablet's headset microphone contact when Android exposes it as an input. It is normally mono microphone-level audio, not true stereo line-in. Use a compatible CTIA TRRS adapter/cable with attenuation between the mixer output and headset-mic input; never connect a speaker/amp output directly. If Wired headset does not appear in the input list, this tablet/adapter is not exposing the socket as a recording input. True stereo line-in will require suitable external audio hardware later. This build sends one selected input at a time; multi-input mixing, SHOUTcast v1/v2, browser/app audio capture and Android playback capture are not implemented yet.",
             ),
             const SizedBox(height: 12),
             const _Notice(
