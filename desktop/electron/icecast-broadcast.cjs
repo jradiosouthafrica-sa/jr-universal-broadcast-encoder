@@ -22,9 +22,13 @@ class IcecastBroadcast {
     if (!profile || profile.type !== "icecast") {
       throw new Error("The first live transport supports Icecast profiles. SHOUTcast and AzuraCast adapters are still being implemented.");
     }
-    if (!profile.host || !/^\d+$/.test(profile.port) || Number(profile.port) < 1 || Number(profile.port) > 65535 ||
-        !profile.mountPoint || !profile.mountPoint.startsWith("/") || !profile.sourcePassword) {
+    if (typeof profile.host !== "string" || !profile.host.trim() || profile.host.length > 253 || /[\r\n\s]/.test(profile.host) ||
+        typeof profile.port !== "string" || !/^\d+$/.test(profile.port) || Number(profile.port) < 1 || Number(profile.port) > 65535 ||
+        typeof profile.mountPoint !== "string" || !profile.mountPoint.startsWith("/") || /[\r\n\s]/.test(profile.mountPoint) ||
+        typeof profile.sourcePassword !== "string" || !profile.sourcePassword || profile.sourcePassword.length > 2048 ||
+        !ffmpegFormats[profile.codec] || !/^\d{1,3}$/.test(profile.bitrateKbps) || Number(profile.bitrateKbps) < 32 || Number(profile.bitrateKbps) > 320) {
       throw new Error("The Icecast profile is incomplete or invalid.");
+    }
     }
     const args = ["-hide_banner", "-loglevel", "error", "-f", "webm", "-i", "pipe:0", "-vn",
       "-ar", "44100", "-ac", "2", "-b:a", `${profile.bitrateKbps}k`, ...ffmpegFormats[profile.codec]];
@@ -94,6 +98,7 @@ class IcecastBroadcast {
           return;
         }
         child.stdout.pipe(socket, { end: false });
+        child.stdout.once("end", () => { if (!socket.destroyed) socket.end(); });
         finish();
       });
       socket.once("error", error => finish(new Error("Could not connect to Icecast: " + error.message)));
