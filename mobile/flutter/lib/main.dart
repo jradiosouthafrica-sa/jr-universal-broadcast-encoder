@@ -262,7 +262,7 @@ class _StudioHomeState extends State<StudioHome> {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Capture a microphone or external mixer line-in and send live AAC audio directly to an Icecast-compatible station server.',
+              'Give radio automation apps without their own broadcast encoder a way to send their programme live. Use the in-app automation workspace, or connect a microphone or external mixer input.',
               style: TextStyle(color: Color(0xFFAAC0C8), height: 1.5),
             ),
             const SizedBox(height: 22),
@@ -306,10 +306,10 @@ class _StudioHomeState extends State<StudioHome> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('RADIO AUTOMATION', style: TextStyle(fontWeight: FontWeight.w800)),
+                          Text('AUTOMATION WITHOUT AN ENCODER', style: TextStyle(fontWeight: FontWeight.w800)),
                           SizedBox(height: 3),
                           Text(
-                            'Open and operate web automation inside this encoder',
+                            'For automation apps without a built-in broadcast encoder',
                             style: TextStyle(color: Color(0xFFAAC0C8), fontSize: 11),
                           ),
                         ],
