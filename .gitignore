@@ -1,0 +1,43 @@
+# JavaScript / Electron
+node_modules/
+dist/
+dist-electron/
+out/
+release/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+
+# Native build output
+target/
+*.app/
+*.dmg
+*.exe
+*.msi
+*.apk
+*.aab
+*.ipa
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local secrets and environment
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
