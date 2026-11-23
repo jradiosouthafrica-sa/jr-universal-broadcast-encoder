@@ -1,0 +1,31 @@
+name: Desktop checks
+
+on:
+  push:
+    paths:
+      - "desktop/**"
+      - ".github/workflows/desktop-checks.yml"
+  pull_request:
+    paths:
+      - "desktop/**"
+      - ".github/workflows/desktop-checks.yml"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Run profile validation tests
+        run: npm test
+      - name: Build desktop renderer
+        run: npm run build
