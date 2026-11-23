@@ -65,6 +65,9 @@ export default function App() {
 
   const refreshInputDevices = async () => {
     try {
+      setAudioMessage("Requesting temporary microphone permission to identify connected audio devices…");
+      const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      permissionStream.getTracks().forEach(track => track.stop());
       const devices = await listAudioInputDevices();
       setInputDevices(devices);
       if (!selectedDeviceId && devices[0]) setSelectedDeviceId(devices[0].deviceId);
