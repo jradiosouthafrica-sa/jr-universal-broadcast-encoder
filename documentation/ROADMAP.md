@@ -27,7 +27,9 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 
 - [x] Add renderer-level enumeration and selection of OS audio input devices, including exposed soundcards and virtual cable endpoints (prototype; native backend validation remains open).
 - [x] Refresh the renderer device list on OS-reported audio input changes and warn when a selected input disappears (prototype).
-- [ ] Implement native WASAPI/CoreAudio/PipeWire loopback backends and validate virtual device routing on each OS.
+- [x] Add an initial Windows WASAPI system-output loopback adapter through FFmpeg PCM capture and route its PCM into the desktop mixer (implementation prototype; hardware validation remains open).
+- [ ] Replace/augment the FFmpeg-based Windows loopback prototype with a dedicated native WASAPI backend; support selecting individual playback endpoints and capturing physical audio inputs natively.
+- [ ] Implement CoreAudio/PipeWire loopback backends and validate virtual device routing on each OS.
 - [ ] Validate browser/system capture.
 - [ ] Investigate per-application capture and document OS/version limits.
 - [ ] Add capture permission and device error handling.
