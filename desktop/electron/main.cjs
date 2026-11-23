@@ -133,6 +133,11 @@ function createWindow() {
     }
   });
 
+  window.webContents.once("destroyed", () => {
+    const capture = wasapiBySender.get(window.webContents.id);
+    if (capture) { wasapiBySender.delete(window.webContents.id); capture.stop(); }
+  });
+
   if (app.isPackaged) {
     window.loadFile(path.join(__dirname, "../dist/index.html"));
   } else {
