@@ -2,7 +2,9 @@ const { app, BrowserWindow, ipcMain, safeStorage } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const { IcecastBroadcast } = require("./icecast-broadcast.cjs");
+const { WasapiCapture } = require("./wasapi-capture.cjs");
 const broadcast = new IcecastBroadcast();
+const wasapiBySender = new Map();
 
 const PROFILE_FILE = "server-profile.enc";
 const MAX_PROFILE_BYTES = 16 * 1024;
@@ -76,6 +78,45 @@ function registerBroadcastHandlers() {
   });
   ipcMain.handle("broadcast:stop", event => { broadcast.stop(event.sender.id); return { ok: true }; });
 }
+function registerWasapiHandlers() {
+  ipcMain.handle("wasapi:start", event => {
+    if (process.platform !== "win32") return { ok: false, error: "WASAPI loopback is available only on Windows." };
+    const senderId = event.sender.id;
+    if (wasapiBySender.has(senderId)) return { ok: false, error: "WASAPI capture is already running." };
+    const capture = new WasapiCapture();
+    wasapiBySender.set(senderId, capture);
+    try {
+      const result = capture.start(
+        chunk => {
+          const target = event.sender;
+          if (!target.isDestroyed()) target.send("wasapi:pcm", chunk);
+        },
+        state => {
+          const target = event.sender;
+          if (!target.isDestroyed()) target.send("wasapi:state", state);
+          if (state.state !== "running") wasapiBySender.delete(senderId);
+        }
+      );
+      return result;
+    } catch (error) {
+      wasapiBySender.delete(senderId);
+      return { ok: false, error: error instanceof Error ? error.message : "WASAPI capture could not start." };
+    }
+  });
+  ipcMain.handle("wasapi:stop", event => {
+    const capture = wasapiBySender.get(event.sender.id);
+    if (capture) {
+      wasapiBySender.delete(event.sender.id);
+      capture.stop();
+    }
+    return { ok: true };
+  });
+  ipcMain.on("wasapi:renderer-closed", event => {
+    const capture = wasapiBySender.get(event.sender.id);
+    if (capture) { wasapiBySender.delete(event.sender.id); capture.stop(); }
+  });
+}
+
 function createWindow() {
   const window = new BrowserWindow({
     width: 1440,
@@ -102,13 +143,14 @@ function createWindow() {
 app.whenReady().then(() => {
   registerProfileStorage();
   registerBroadcastHandlers();
+  registerWasapiHandlers();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on("before-quit", () => broadcast.stop());
+app.on("before-quit", () => { broadcast.stop(); for (const capture of wasapiBySender.values()) capture.stop(); wasapiBySender.clear(); });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
