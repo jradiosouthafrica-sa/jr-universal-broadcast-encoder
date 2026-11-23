@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BroadcastAudioEngine, AudioSourceId } from "./audioEngine";
+import { BroadcastAudioEngine, AudioInputDevice, AudioSourceId, listAudioInputDevices } from "./audioEngine";
 import { ServerProfile, ServerType, serverTypeLabels, validateServerProfile } from "./serverProfiles";
 
 const emptyProfile: ServerProfile = { name: "My station", type: "icecast", host: "", port: "", codec: "mp3", bitrateKbps: "128", mountPoint: "/stream", sourceUsername: "source", sourcePassword: "", streamId: "1" };
-const sourceNames: Record<AudioSourceId, string> = { microphone: "Microphone", desktop: "Desktop / app audio" };
+const sourceNames: Record<AudioSourceId, string> = { microphone: "Microphone", desktop: "Desktop / app audio", device: "Soundcard / virtual cable" };
 
 export default function App() {
   const engineRef = useRef<BroadcastAudioEngine | null>(null);
@@ -15,15 +15,17 @@ export default function App() {
   const [storageBusy, setStorageBusy] = useState(false);
   const [audioBusy, setAudioBusy] = useState(false);
   const [audioMessage, setAudioMessage] = useState("Audio engine is idle. Add a source to create the programme mix.");
-  const [active, setActive] = useState<Record<AudioSourceId, boolean>>({ microphone: false, desktop: false });
+  const [active, setActive] = useState<Record<AudioSourceId, boolean>>({ microphone: false, desktop: false, device: false });
   const [muted, setMuted] = useState<Record<AudioSourceId, boolean>>({ microphone: false, desktop: false });
-  const [volumes, setVolumes] = useState<Record<AudioSourceId, number>>({ microphone: 1, desktop: 1 });
+  const [volumes, setVolumes] = useState<Record<AudioSourceId, number>>({ microphone: 1, desktop: 1, device: 1 });
   const [masterVolume, setMasterVolume] = useState(1);
   const [masterMuted, setMasterMuted] = useState(false);
-  const [levels, setLevels] = useState<Record<AudioSourceId, number>>({ microphone: 0, desktop: 0 });
+  const [levels, setLevels] = useState<Record<AudioSourceId, number>>({ microphone: 0, desktop: 0, device: 0 });
   const [masterLevel, setMasterLevel] = useState(0);
   const [mixReady, setMixReady] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
+  const [inputDevices, setInputDevices] = useState<AudioInputDevice[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const validation = useMemo(() => validateServerProfile(profile), [profile]);
   const update = <K extends keyof ServerProfile>(key: K, value: ServerProfile[K]) => setProfile(current => ({ ...current, [key]: value }));
   const changeType = (type: ServerType) => { setProfile(current => ({ ...current, type })); setValidationRequested(false); };
@@ -35,10 +37,11 @@ export default function App() {
       if (!current) return;
       const micActive = current.isSourceActive("microphone");
       const desktopActive = current.isSourceActive("desktop");
-      setActive(previous => previous.microphone === micActive && previous.desktop === desktopActive ? previous : { microphone: micActive, desktop: desktopActive });
-      setLevels({ microphone: current.getSourceLevel("microphone"), desktop: current.getSourceLevel("desktop") });
+      const deviceActive = current.isSourceActive("device");
+      setActive(previous => previous.microphone === micActive && previous.desktop === desktopActive && previous.device === deviceActive ? previous : { microphone: micActive, desktop: desktopActive, device: deviceActive });
+      setLevels({ microphone: current.getSourceLevel("microphone"), desktop: current.getSourceLevel("desktop"), device: current.getSourceLevel("device") });
       setMasterLevel(current.getMasterLevel());
-      setMixReady(micActive || desktopActive);
+      setMixReady(micActive || desktopActive || deviceActive);
     }, 100);
     return () => window.clearInterval(timer);
   }, []);
@@ -60,11 +63,20 @@ export default function App() {
     void engineRef.current?.stop();
   }, []);
 
+  const refreshInputDevices = async () => {
+    try {
+      const devices = await listAudioInputDevices();
+      setInputDevices(devices);
+      if (!selectedDeviceId && devices[0]) setSelectedDeviceId(devices[0].deviceId);
+      setAudioMessage(devices.length ? "Found " + devices.length + " audio input device(s). Select a soundcard or virtual cable." : "No audio input devices were found.");
+    } catch (error) { setAudioMessage(error instanceof Error ? error.message : "Could not list audio input devices."); }
+  };
   const capture = async (id: AudioSourceId) => {
     setAudioBusy(true);
     setAudioMessage(id === "microphone" ? "Requesting microphone permission…" : "Opening the system audio sharing picker…");
     try {
-      if (id === "microphone") await engine().addMicrophone();
+      if (id === "microphone") { await engine().addMicrophone(); await refreshInputDevices(); }
+      else if (id === "device") await engine().addAudioDevice(selectedDeviceId);
       else await engine().addDesktopAudio();
       setActive(current => ({ ...current, [id]: true }));
       setMuted(current => ({ ...current, [id]: false }));
@@ -170,17 +182,18 @@ export default function App() {
     <section className="welcome"><p className="eyebrow">BROADCAST CONTROL ROOM</p><h1>Your sound. <span>Your station.</span></h1><p className="intro">Capture supported audio sources, mix them into one programme feed, then send that feed to your radio server.</p></section>
     <section className="panel"><div className="section-heading"><div><p className="eyebrow">INPUTS</p><h2>Audio channels</h2></div><span className="muted">Live capture controls</span></div>
       <div className="audio-sources">
-        {(["microphone", "desktop"] as const).map((id, index) => <article className="audio-source" key={id}>
+        {(["microphone", "desktop", "device"] as const).map((id, index) => <article className="audio-source" key={id}>
           <div className="channel-number">0{index + 1}</div>
           <div className="source-main"><div className="source-title"><strong>{sourceNames[id]}</strong><span className={active[id] ? "source-badge connected" : "source-badge"}>{active[id] ? "CONNECTED" : "IDLE"}</span></div>
             <div className="meter" aria-label={`Audio level ${Math.round(levels[id] * 100)} percent`}>{meterBars(levels[id])}</div>
             <div className="source-controls"><label>Volume <input type="range" min="0" max="100" value={Math.round(volumes[id] * 100)} disabled={!active[id]} onChange={e => changeVolume(id, Number(e.target.value))}/><span>{Math.round(volumes[id] * 100)}%</span></label>
-              {active[id] ? <><button className="small-button" onClick={() => toggleMute(id)}>{muted[id] ? "UNMUTE" : "MUTE"}</button><button className="small-button stop" onClick={() => stopSource(id)}>STOP</button></> : <button className="small-button capture" disabled={audioBusy} onClick={() => void capture(id)}>{id === "microphone" ? "CAPTURE MIC" : "CAPTURE DESKTOP AUDIO"}</button>}
+              {id === "device" && <div className="device-picker"><select value={selectedDeviceId} onChange={e => setSelectedDeviceId(e.target.value)} disabled={active.device || audioBusy}><option value="">Select an audio input…</option>{inputDevices.map(device => <option value={device.deviceId} key={device.deviceId}>{device.label}</option>)}</select><button className="small-button" disabled={audioBusy || active.device} onClick={() => void refreshInputDevices()}>REFRESH DEVICES</button></div>}
+              {active[id] ? <><button className="small-button" onClick={() => toggleMute(id)}>{muted[id] ? "UNMUTE" : "MUTE"}</button><button className="small-button stop" onClick={() => stopSource(id)}>STOP</button></> : <button className="small-button capture" disabled={audioBusy || (id === "device" && !selectedDeviceId)} onClick={() => void capture(id)}>{id === "microphone" ? "CAPTURE MIC" : id === "device" ? "CONNECT DEVICE" : "CAPTURE DESKTOP AUDIO"}</button>}
             </div>
           </div>
         </article>)}
       </div>
-      <p className="field-help audio-note">Desktop audio depends on operating-system support and the screen, window or browser tab selected in the sharing picker. Some applications block audio capture. Browser audio and external line/USB input are not separate channels yet.</p>
+      <p className="field-help audio-note">Choose a physical soundcard, USB audio interface, line input or virtual cable (such as VB-CABLE on Windows) in the device channel. Route the other application playback output to that virtual device. Desktop sharing remains available where supported. Device names may appear only after microphone permission is granted.</p>
       <div className="audio-actions"><button className="validate-button" disabled={!mixReady} onClick={() => { try { const stream = engine().getBroadcastStream(); setAudioMessage(`Programme mix is ready (${stream.getAudioTracks().length} audio track). Streaming transport is not connected yet.`); } catch (error) { setAudioMessage(error instanceof Error ? error.message : "Mix unavailable."); } }}>CHECK PROGRAMME MIX</button><button className="small-button stop-all" disabled={!mixReady && !audioBusy} onClick={() => void stopAllAudio()}>STOP ALL AUDIO</button></div>
       <p className="audio-message" role="status">{audioMessage}</p>
     </section>
