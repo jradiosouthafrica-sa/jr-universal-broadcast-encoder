@@ -6,9 +6,7 @@ The goal is to let a broadcaster combine supported audio sources—websites, des
 
 ## Project status
 
-**Stage:** Foundation
-
-This repository is the start of the project. Audio capture, mixing, encoding and live streaming are not implemented yet. Platform support will be added and verified in stages; do not treat the roadmap as a claim that every platform already supports every capture mode.
+**Stage:** Desktop prototype — microphone/desktop capture, mixing and first Icecast output path are committed. The live path requires FFmpeg installed on the desktop machine. It has not yet been verified against a real station server. SHOUTcast, AzuraCast, mobile broadcasting, integrated browser capture and native per-application capture remain in development. Platform support will be added and verified in stages; do not treat the roadmap as a claim that every platform already supports every capture mode.
 
 ## Planned platforms
 
@@ -20,9 +18,9 @@ This repository is the start of the project. Audio capture, mixing, encoding and
 
 - Open websites in an integrated browser and launch installed desktop applications.
 - Capture supported browser, system, application and external-device audio sources.
-- Mix independent sources with channel faders, mute controls, meters and a master output.
+- Mix independent sources with channel faders, mute controls, meters and a master output. (Desktop microphone and OS-selected desktop audio prototype implemented.)
 - Mix microphone input with programme audio.
-- Encode supported formats and bitrates.
+- Encode supported formats and bitrates. (Initial FFmpeg-backed Icecast output path implemented; requires FFmpeg on PATH.)
 - Broadcast to Icecast, SHOUTcast (including supported v1/v2 source configurations), AzuraCast and compatible servers.
 - Save station profiles, monitor connection health and reconnect after interruptions.
 - Support background broadcasting on mobile where the operating system permits it.
