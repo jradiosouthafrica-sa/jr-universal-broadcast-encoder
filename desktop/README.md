@@ -23,6 +23,8 @@ npm run build
 ## Current audio and broadcast prototype
 
 - Microphone capture through the browser media-device API.
+- Selectable audio input devices, including physical soundcards, USB interfaces, line inputs and installed virtual audio cable/loopback devices exposed by the operating system.
+- Route another application's playback output to a virtual cable, then select that cable as the encoder input channel. The virtual cable driver is installed separately; the app does not create one.
 - Desktop/system audio capture through the OS sharing picker, where supported.
 - Independent microphone and desktop channel gain/mute controls, meters and a master mix.
 - A mixed audio stream is passed to Electron's main process.
@@ -34,7 +36,7 @@ npm run build
 - Install FFmpeg separately and ensure the `ffmpeg` executable is on PATH. A bundled FFmpeg distribution and its codec/build licensing still need review.
 - Only Icecast has a live source adapter at this stage. SHOUTcast v1/v2 and AzuraCast adapters are not yet implemented.
 - This prototype uses a plain TCP Icecast source connection; TLS output, reconnect/backoff, metadata updates and production-grade network buffering are not yet implemented.
-- Desktop audio capture depends on OS support and the source application's capture policy. Browser and external line/USB inputs are not separate source channels yet.
+- Selectable-device input uses audio input devices exposed by the OS. A virtual cable must be installed and configured separately (for example VB-CABLE on Windows). The app cannot create or guarantee a virtual device. Device labels may require microphone permission before enumeration. Desktop sharing remains subject to OS support and application capture policy.
 - A successful profile validation does not prove that the station server accepts the credentials or selected codec. Test against a real Icecast server before relying on it for a programme.
 
 Electron security defaults are enabled: renderer Node integration is disabled, context isolation is enabled, and privileged operations are exposed only through a narrow preload bridge.
