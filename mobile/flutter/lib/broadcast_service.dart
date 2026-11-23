@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:collection';
 import 'dart:io';
 
 import 'android_playback_capture.dart';
@@ -58,6 +59,10 @@ class MobileBroadcastService {
   bool _active = false;
   int _retryAttempt = 0;
   int droppedChunks = 0;
+  bool _automationCaptureActive = false;
+  final Queue<List<int>> _pendingAudio = Queue<List<int>>();
+  int _pendingAudioBytes = 0;
+  static const int _maxPendingAudioBytes = 512 * 1024;
 
   bool get isActive => _active;
 
@@ -87,6 +92,7 @@ class MobileBroadcastService {
           },
         );
         await AndroidPlaybackCapture.start();
+        _automationCaptureActive = true;
       } else {
         await _startForegroundService();
         final audio = await _recorder.startStream(
@@ -113,8 +119,15 @@ class MobileBroadcastService {
       unawaited(_connectionLoop(profile));
     } catch (_) {
       _active = false;
-      await _recorder.stop();
-      await FlutterForegroundTask.stopService();
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
+      if (profile.inputMode == MobileInputMode.automation) {
+        try { await AndroidPlaybackCapture.stop(); } catch (_) {}
+        _automationCaptureActive = false;
+      } else {
+        await _recorder.stop();
+        await FlutterForegroundTask.stopService();
+      }
       rethrow;
     }
   }
@@ -133,15 +146,40 @@ class MobileBroadcastService {
   }
 
   void _sendAudioChunk(List<int> chunk) {
+    if (!_active) return;
     final socket = _socket;
-    if (!_active || socket == null) {
-      droppedChunks++;
+    if (socket == null) {
+      final copy = List<int>.of(chunk, growable: false);
+      while (_pendingAudio.isNotEmpty &&
+          _pendingAudioBytes + copy.length > _maxPendingAudioBytes) {
+        _pendingAudioBytes -= _pendingAudio.removeFirst().length;
+        droppedChunks++;
+      }
+      if (copy.length <= _maxPendingAudioBytes) {
+        _pendingAudio.addLast(copy);
+        _pendingAudioBytes += copy.length;
+      } else {
+        droppedChunks++;
+      }
       return;
     }
     try {
       socket.add(chunk);
     } catch (_) {
       droppedChunks++;
+    }
+  }
+
+  void _flushPendingAudio(Socket socket) {
+    while (_pendingAudio.isNotEmpty && identical(_socket, socket)) {
+      final chunk = _pendingAudio.removeFirst();
+      _pendingAudioBytes -= chunk.length;
+      try {
+        socket.add(chunk);
+      } catch (_) {
+        droppedChunks++;
+        break;
+      }
     }
   }
 
@@ -204,6 +242,7 @@ class MobileBroadcastService {
         if (!_active) break;
         _socket = connectedSocket;
         _socketSubscription = subscription;
+        _flushPendingAudio(connectedSocket);
         _retryAttempt = 0;
         onStatus('live', 'Connected to Icecast. ${profile.inputMode == MobileInputMode.automation ? 'Automation playback' : profile.inputMode == MobileInputMode.lineIn ? 'External line-in' : 'Microphone'} audio is being sent.');
         await connectedSocket.done;
@@ -276,17 +315,25 @@ class MobileBroadcastService {
     _socketSubscription = null;
     _socket?.destroy();
     _socket = null;
-    if (_active == false) {
-      try { await AndroidPlaybackCapture.stop(); } catch (_) { /* Capture may not have started. */ }
+    if (_automationCaptureActive) {
+      try {
+        await AndroidPlaybackCapture.stop();
+      } catch (_) {
+        // Android may already have stopped the projection session.
+      }
+      _automationCaptureActive = false;
+    } else {
+      try {
+        await _recorder.stop();
+      } catch (_) {
+        // The recorder may already have stopped after a platform interruption.
+      }
+      if (Platform.isAndroid) {
+        await FlutterForegroundTask.stopService();
+      }
     }
-    try {
-      await _recorder.stop();
-    } catch (_) {
-      // The recorder may already have stopped after a platform interruption.
-    }
-    if (Platform.isAndroid) {
-      await FlutterForegroundTask.stopService();
-    }
+    _pendingAudio.clear();
+    _pendingAudioBytes = 0;
     onStatus('stopped', 'Broadcast stopped.');
   }
 
