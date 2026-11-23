@@ -1,7 +1,7 @@
 name: jr_universal_broadcast_encoder
-description: Mobile shell for JRadio Universal Broadcast Encoder.
+description: Mobile broadcast encoder for JRadio Universal Broadcast Encoder.
 publish_to: "none"
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  record: ^6.1.2
+  flutter_foreground_task: ^8.17.0
 
 dev_dependencies:
   flutter_test:
