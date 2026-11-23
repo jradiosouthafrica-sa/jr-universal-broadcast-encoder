@@ -26,6 +26,7 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 ## 2. Audio device and capture prototype
 
 - [x] Add renderer-level enumeration and selection of OS audio input devices, including exposed soundcards and virtual cable endpoints (prototype; native backend validation remains open).
+- [x] Refresh the renderer device list on OS-reported audio input changes and warn when a selected input disappears (prototype).
 - [ ] Implement native WASAPI/CoreAudio/PipeWire loopback backends and validate virtual device routing on each OS.
 - [ ] Validate browser/system capture.
 - [ ] Investigate per-application capture and document OS/version limits.
