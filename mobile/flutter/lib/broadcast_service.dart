@@ -13,6 +13,7 @@ class MobileIcecastProfile {
     required this.username,
     required this.password,
     this.bitrateKbps = 128,
+    this.inputDevice,
   });
 
   final String host;
@@ -21,6 +22,7 @@ class MobileIcecastProfile {
   final String username;
   final String password;
   final int bitrateKbps;
+  final InputDevice? inputDevice;
 
   String? validate() {
     if (host.trim().isEmpty) return 'Enter the Icecast server host.';
@@ -53,6 +55,8 @@ class MobileBroadcastService {
 
   bool get isActive => _active;
 
+  Future<List<InputDevice>> listInputDevices() => _recorder.listInputDevices();
+
   Future<void> start(MobileIcecastProfile profile) async {
     if (_active) return;
     final validation = profile.validate();
@@ -74,6 +78,7 @@ class MobileBroadcastService {
           bitRate: profile.bitrateKbps * 1000,
           sampleRate: 44100,
           numChannels: 2,
+          device: profile.inputDevice,
         ),
       );
       _audioSubscription = audio.listen(
