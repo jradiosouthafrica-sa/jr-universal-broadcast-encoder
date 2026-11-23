@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'android_playback_capture.dart';
+
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:record/record.dart';
 
-enum MobileInputMode { microphone, lineIn }
+enum MobileInputMode { microphone, lineIn, automation }
 
 class MobileIcecastProfile {
   const MobileIcecastProfile({
@@ -50,7 +52,7 @@ class MobileBroadcastService {
   final BroadcastStatusCallback onStatus;
   final AudioRecorder _recorder = AudioRecorder();
 
-  StreamSubscription<List<int>>? _audioSubscription;
+  StreamSubscription<dynamic>? _audioSubscription;
   StreamSubscription<List<int>>? _socketSubscription;
   Socket? _socket;
   bool _active = false;
@@ -75,37 +77,38 @@ class MobileBroadcastService {
     droppedChunks = 0;
 
     try {
-      await _startForegroundService();
-      final audio = await _recorder.startStream(
-        RecordConfig(
-          encoder: AudioEncoder.aacLc,
-          bitRate: profile.bitrateKbps * 1000,
-          sampleRate: 44100,
-          numChannels: 2,
-          device: profile.inputDevice,
-          // Keep a mixer feed raw; voice processing can pump or gate music.
-          autoGain: profile.inputMode == MobileInputMode.microphone,
-          echoCancel: profile.inputMode == MobileInputMode.microphone,
-          noiseSuppress: profile.inputMode == MobileInputMode.microphone,
-        ),
-      );
-      _audioSubscription = audio.listen(
-        (chunk) {
-          final socket = _socket;
-          if (!_active || socket == null) {
-            droppedChunks++;
-            return;
-          }
-          try {
-            socket.add(chunk);
-          } catch (_) {
-            droppedChunks++;
-          }
-        },
-        onError: (Object error) {
-          onStatus('warning', 'Audio input stream error: $error');
-        },
-      );
+      if (profile.inputMode == MobileInputMode.automation) {
+        // Listen before requesting projection permission so the first encoded
+        // programme frames are not missed when Android starts the capture service.
+        _audioSubscription = AndroidPlaybackCapture.events.listen(
+          _handleAutomationEvent,
+          onError: (Object error) {
+            onStatus('warning', 'Automation audio capture error: $error');
+          },
+        );
+        await AndroidPlaybackCapture.start();
+      } else {
+        await _startForegroundService();
+        final audio = await _recorder.startStream(
+          RecordConfig(
+            encoder: AudioEncoder.aacLc,
+            bitRate: profile.bitrateKbps * 1000,
+            sampleRate: 44100,
+            numChannels: 2,
+            device: profile.inputDevice,
+            // Keep a mixer feed raw; voice processing can pump or gate music.
+            autoGain: profile.inputMode == MobileInputMode.microphone,
+            echoCancel: profile.inputMode == MobileInputMode.microphone,
+            noiseSuppress: profile.inputMode == MobileInputMode.microphone,
+          ),
+        );
+        _audioSubscription = audio.listen(
+          _sendAudioChunk,
+          onError: (Object error) {
+            onStatus('warning', 'Audio input stream error: $error');
+          },
+        );
+      }
       onStatus('connecting', 'Connecting to ${profile.host}:${profile.port}');
       unawaited(_connectionLoop(profile));
     } catch (_) {
@@ -113,6 +116,32 @@ class MobileBroadcastService {
       await _recorder.stop();
       await FlutterForegroundTask.stopService();
       rethrow;
+    }
+  }
+
+  void _handleAutomationEvent(dynamic event) {
+    if (event is List<int>) {
+      _sendAudioChunk(event);
+      return;
+    }
+    if (event is Map) {
+      onStatus(
+        event['status']?.toString() ?? 'info',
+        event['message']?.toString() ?? 'Automation capture status changed.',
+      );
+    }
+  }
+
+  void _sendAudioChunk(List<int> chunk) {
+    final socket = _socket;
+    if (!_active || socket == null) {
+      droppedChunks++;
+      return;
+    }
+    try {
+      socket.add(chunk);
+    } catch (_) {
+      droppedChunks++;
     }
   }
 
@@ -176,7 +205,7 @@ class MobileBroadcastService {
         _socket = connectedSocket;
         _socketSubscription = subscription;
         _retryAttempt = 0;
-        onStatus('live', 'Connected to Icecast. ${profile.inputMode == MobileInputMode.lineIn ? 'External line-in' : 'Microphone'} audio is being sent.');
+        onStatus('live', 'Connected to Icecast. ${profile.inputMode == MobileInputMode.automation ? 'Automation playback' : profile.inputMode == MobileInputMode.lineIn ? 'External line-in' : 'Microphone'} audio is being sent.');
         await connectedSocket.done;
       } catch (error) {
         if (_active) {
@@ -247,6 +276,9 @@ class MobileBroadcastService {
     _socketSubscription = null;
     _socket?.destroy();
     _socket = null;
+    if (_active == false) {
+      try { await AndroidPlaybackCapture.stop(); } catch (_) { /* Capture may not have started. */ }
+    }
     try {
       await _recorder.stop();
     } catch (_) {
