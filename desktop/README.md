@@ -4,7 +4,7 @@
 
 - Node.js 20 or later
 - npm
-- FFmpeg installed and available as `ffmpeg` on the system PATH for live Icecast output
+- FFmpeg installed and available as `ffmpeg` on the system PATH for live Icecast output; Windows WASAPI loopback additionally requires a build with WASAPI input support
 
 ## Run in development
 
