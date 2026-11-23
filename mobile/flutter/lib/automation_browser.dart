@@ -50,7 +50,7 @@ class _AutomationBrowserPageState extends State<AutomationBrowserPage> {
             });
           },
           onWebResourceError: (error) {
-            if (!mounted || !error.isForMainFrame) return;
+            if (!mounted || error.isForMainFrame == false) return;
             setState(() {
               _loading = false;
               _error = error.description;
