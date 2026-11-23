@@ -16,7 +16,7 @@ export default function App() {
   const [audioBusy, setAudioBusy] = useState(false);
   const [audioMessage, setAudioMessage] = useState("Audio engine is idle. Add a source to create the programme mix.");
   const [active, setActive] = useState<Record<AudioSourceId, boolean>>({ microphone: false, desktop: false, device: false });
-  const [muted, setMuted] = useState<Record<AudioSourceId, boolean>>({ microphone: false, desktop: false });
+  const [muted, setMuted] = useState<Record<AudioSourceId, boolean>>({ microphone: false, desktop: false, device: false });
   const [volumes, setVolumes] = useState<Record<AudioSourceId, number>>({ microphone: 1, desktop: 1, device: 1 });
   const [masterVolume, setMasterVolume] = useState(1);
   const [masterMuted, setMasterMuted] = useState(false);
@@ -149,8 +149,8 @@ export default function App() {
     if (broadcasting) await stopBroadcast();
     await engineRef.current?.stop();
     engineRef.current = null;
-    setActive({ microphone: false, desktop: false });
-    setLevels({ microphone: 0, desktop: 0 });
+    setActive({ microphone: false, desktop: false, device: false });
+    setLevels({ microphone: 0, desktop: 0, device: 0 });
     setMasterLevel(0);
     setMixReady(false);
     setAudioMessage("All audio sources stopped. Programme mix is closed.");
@@ -194,10 +194,10 @@ export default function App() {
         </article>)}
       </div>
       <p className="field-help audio-note">Choose a physical soundcard, USB audio interface, line input or virtual cable (such as VB-CABLE on Windows) in the device channel. Route the other application playback output to that virtual device. Desktop sharing remains available where supported. Device names may appear only after microphone permission is granted.</p>
-      <div className="audio-actions"><button className="validate-button" disabled={!mixReady} onClick={() => { try { const stream = engine().getBroadcastStream(); setAudioMessage(`Programme mix is ready (${stream.getAudioTracks().length} audio track). Streaming transport is not connected yet.`); } catch (error) { setAudioMessage(error instanceof Error ? error.message : "Mix unavailable."); } }}>CHECK PROGRAMME MIX</button><button className="small-button stop-all" disabled={!mixReady && !audioBusy} onClick={() => void stopAllAudio()}>STOP ALL AUDIO</button></div>
+      <div className="audio-actions"><button className="validate-button" disabled={!mixReady} onClick={() => { try { const stream = engine().getBroadcastStream(); setAudioMessage(`Programme mix is ready (${stream.getAudioTracks().length} audio track). Ready for the selected streaming output.`); } catch (error) { setAudioMessage(error instanceof Error ? error.message : "Mix unavailable."); } }}>CHECK PROGRAMME MIX</button><button className="small-button stop-all" disabled={!mixReady && !audioBusy} onClick={() => void stopAllAudio()}>STOP ALL AUDIO</button></div>
       <p className="audio-message" role="status">{audioMessage}</p>
     </section>
-    <section className="panel connection-panel"><div className="section-heading"><div><p className="eyebrow">STATION OUTPUT</p><h2>Streaming server profile</h2></div><span className="muted">Configuration only · no connection yet</span></div>
+    <section className="panel connection-panel"><div className="section-heading"><div><p className="eyebrow">STATION OUTPUT</p><h2>Streaming server profile</h2></div><span className="muted">Icecast live source adapter / other protocols in development</span></div>
       <div className="form-grid">
         <label>Profile name<input value={profile.name} onChange={e=>update("name",e.target.value)} placeholder="My station"/></label>
         <label>Server type<select value={profile.type} onChange={e=>changeType(e.target.value as ServerType)}>{Object.entries(serverTypeLabels).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
