@@ -24,7 +24,7 @@ This is an initial mobile broadcast path, not feature parity with the desktop en
 
 ## Requirements
 
-- Flutter 3.10+ / Dart 3.0+ (use a current stable Flutter release where possible)
+- Flutter 3.24+ / Dart 3.5+ (use a current stable Flutter release where possible)
 - Android Studio and Android SDK for Android builds
 - macOS with Xcode for iOS builds
 
