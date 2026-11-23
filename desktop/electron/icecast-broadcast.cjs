@@ -31,11 +31,11 @@ class IcecastBroadcast {
     if (!profile || profile.type !== "icecast") {
       throw new Error("The current live transport supports Icecast profiles. SHOUTcast and AzuraCast adapters are still being implemented.");
     }
-    if (typeof profile.host !== "string" || !profile.host.trim() || profile.host.length > 253 || /[\\r\\n\\s]/.test(profile.host) ||
-        typeof profile.port !== "string" || !/^\\d+$/.test(profile.port) || Number(profile.port) < 1 || Number(profile.port) > 65535 ||
-        typeof profile.mountPoint !== "string" || !profile.mountPoint.startsWith("/") || /[\\r\\n\\s]/.test(profile.mountPoint) ||
+    if (typeof profile.host !== "string" || !profile.host.trim() || profile.host.length > 253 || /[\r\n\s]/.test(profile.host) ||
+        typeof profile.port !== "string" || !/^\d+$/.test(profile.port) || Number(profile.port) < 1 || Number(profile.port) > 65535 ||
+        typeof profile.mountPoint !== "string" || !profile.mountPoint.startsWith("/") || /[\r\n\s]/.test(profile.mountPoint) ||
         typeof profile.sourcePassword !== "string" || !profile.sourcePassword || profile.sourcePassword.length > 2048 ||
-        !ffmpegFormats[profile.codec] || !/^\\d{1,3}$/.test(profile.bitrateKbps) || Number(profile.bitrateKbps) < 32 || Number(profile.bitrateKbps) > 320) {
+        !ffmpegFormats[profile.codec] || !/^\d{1,3}$/.test(profile.bitrateKbps) || Number(profile.bitrateKbps) < 32 || Number(profile.bitrateKbps) > 320) {
       throw new Error("The Icecast profile is incomplete or invalid.");
     }
 
@@ -104,7 +104,7 @@ class IcecastBroadcast {
         `SOURCE ${profile.mountPoint} HTTP/1.0`,
         `Authorization: Basic ${auth}`,
         `Content-Type: ${contentTypes[profile.codec]}`,
-        `Ice-Name: ${String(profile.name).replace(/[\\r\\n]/g, " ")}`,
+        `Ice-Name: ${String(profile.name).replace(/[\r\n]/g, " ")}`,
         "Ice-Public: 0",
         "",
         ""
@@ -113,8 +113,8 @@ class IcecastBroadcast {
     socket.once("data", data => {
       if (this.stopping || sessionId !== this.sessionId) return;
       const response = data.toString("latin1");
-      if (!/^HTTP\\/1\\.[01] 200\\b/.test(response)) {
-        const status = response.split("\\r\\n", 1)[0] || "Unknown server response";
+      if (!/^HTTP\/1\.[01] 200\b/.test(response)) {
+        const status = response.split("\r\n", 1)[0] || "Unknown server response";
         this.notify("reconnecting", "Icecast did not accept the source connection (" + status + "). Retrying automatically.");
         finishAttempt();
         socket.destroy();
