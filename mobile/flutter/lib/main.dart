@@ -309,6 +309,7 @@ class _StudioHomeState extends State<StudioHome> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    key: ValueKey(_selectedInputId),
                     initialValue: _selectedInputId,
                     decoration: InputDecoration(
                       labelText: _inputMode == MobileInputMode.lineIn ? 'Wired / external input' : 'Microphone device',
