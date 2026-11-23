@@ -57,7 +57,7 @@ The UI and audio engine should communicate through explicit, versioned interface
 
 Core concepts:
 
-- `StationProfile`: server type, host, port, mount/stream path, codec, bitrate and saved connection settings.
+- `StationProfile`: server family and version, host, port, mount or stream ID, source username where required, secret reference, codec, bitrate and saved connection settings. The secret itself must never be stored in plain-text profile exports.
 - `AudioSource`: stable ID, source kind, display name, availability, gain, mute and meter state.
 - `MixerState`: channel states, master gain, master mute and output meter.
 - `BroadcastState`: stopped, connecting, live, reconnecting or error.
