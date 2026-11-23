@@ -119,7 +119,7 @@ class IcecastBroadcast {
   }
 
   stop(senderId) {
-    if (this.senderId !== null && senderId !== this.senderId) return;
+    if (senderId !== undefined && this.senderId !== null && senderId !== this.senderId) return;
     this.stopping = true;
     if (this.child) {
       this.child.stdin.end();
