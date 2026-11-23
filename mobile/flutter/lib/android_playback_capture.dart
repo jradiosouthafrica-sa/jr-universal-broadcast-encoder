@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 
 /// Android MediaProjection playback-capture bridge.
@@ -9,11 +7,7 @@ class AndroidPlaybackCapture {
   static const MethodChannel _methods = MethodChannel('jradio/automation_capture');
   static const EventChannel _events = EventChannel('jradio/automation_capture_events');
 
-  static Stream<List<int>> get audioStream => _events.receiveBroadcastStream().map((event) {
-        if (event is Uint8List) return event.toList(growable: false);
-        if (event is List<int>) return List<int>.unmodifiable(event);
-        throw StateError('Unexpected automation audio event.');
-      });
+  static Stream<dynamic> get events => _events.receiveBroadcastStream();
 
   static Future<void> start() async {
     await _methods.invokeMethod<bool>('start');
