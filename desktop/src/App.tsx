@@ -26,6 +26,7 @@ export default function App() {
   const [broadcasting, setBroadcasting] = useState(false);
   const [inputDevices, setInputDevices] = useState<AudioInputDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [deviceWarning, setDeviceWarning] = useState("");
   const validation = useMemo(() => validateServerProfile(profile), [profile]);
   const update = <K extends keyof ServerProfile>(key: K, value: ServerProfile[K]) => setProfile(current => ({ ...current, [key]: value }));
   const changeType = (type: ServerType) => { setProfile(current => ({ ...current, type })); setValidationRequested(false); };
@@ -74,6 +75,34 @@ export default function App() {
       setAudioMessage(devices.length ? "Found " + devices.length + " audio input device(s). Select a soundcard or virtual cable." : "No audio input devices were found.");
     } catch (error) { setAudioMessage(error instanceof Error ? error.message : "Could not list audio input devices."); }
   };
+  useEffect(() => {
+    const mediaDevices = navigator.mediaDevices;
+    if (!mediaDevices?.addEventListener) return;
+    let disposed = false;
+    const handleDeviceChange = async () => {
+      try {
+        const devices = await listAudioInputDevices();
+        if (disposed) return;
+        setInputDevices(devices);
+        if (selectedDeviceId && !devices.some(device => device.deviceId === selectedDeviceId)) {
+          if (!active.device) setSelectedDeviceId("");
+          setDeviceWarning("The selected audio device was disconnected. Reconnect it or choose another input.");
+          if (active.device) setAudioMessage("The selected audio device is no longer listed. The active stream may stop if the operating system disconnects it.");
+        } else {
+          setDeviceWarning("");
+          if (!selectedDeviceId && devices[0] && !active.device) setSelectedDeviceId(devices[0].deviceId);
+        }
+      } catch {
+        if (!disposed) setDeviceWarning("Could not refresh the audio-device list.");
+      }
+    };
+    mediaDevices.addEventListener("devicechange", handleDeviceChange);
+    return () => {
+      disposed = true;
+      mediaDevices.removeEventListener("devicechange", handleDeviceChange);
+    };
+  }, [selectedDeviceId, active.device]);
+
   const capture = async (id: AudioSourceId) => {
     setAudioBusy(true);
     setAudioMessage(id === "microphone" ? "Requesting microphone permission…" : "Opening the system audio sharing picker…");
@@ -190,7 +219,7 @@ export default function App() {
           <div className="source-main"><div className="source-title"><strong>{sourceNames[id]}</strong><span className={active[id] ? "source-badge connected" : "source-badge"}>{active[id] ? "CONNECTED" : "IDLE"}</span></div>
             <div className="meter" aria-label={`Audio level ${Math.round(levels[id] * 100)} percent`}>{meterBars(levels[id])}</div>
             <div className="source-controls"><label>Volume <input type="range" min="0" max="100" value={Math.round(volumes[id] * 100)} disabled={!active[id]} onChange={e => changeVolume(id, Number(e.target.value))}/><span>{Math.round(volumes[id] * 100)}%</span></label>
-              {id === "device" && <div className="device-picker"><select value={selectedDeviceId} onChange={e => setSelectedDeviceId(e.target.value)} disabled={active.device || audioBusy}><option value="">Select an audio input…</option>{inputDevices.map(device => <option value={device.deviceId} key={device.deviceId}>{device.label}</option>)}</select><button className="small-button" disabled={audioBusy || active.device} onClick={() => void refreshInputDevices()}>REFRESH DEVICES</button></div>}
+              {id === "device" && <div className="device-picker"><select value={selectedDeviceId} onChange={e => setSelectedDeviceId(e.target.value)} disabled={active.device || audioBusy}><option value="">Select an audio input…</option>{inputDevices.map(device => <option value={device.deviceId} key={device.deviceId}>{device.label}</option>)}</select><button className="small-button" disabled={audioBusy || active.device} onClick={() => void refreshInputDevices()}>REFRESH DEVICES</button>{deviceWarning && <small className="field-help" role="alert">{deviceWarning}</small>}</div>}
               {active[id] ? <><button className="small-button" onClick={() => toggleMute(id)}>{muted[id] ? "UNMUTE" : "MUTE"}</button><button className="small-button stop" onClick={() => stopSource(id)}>STOP</button></> : <button className="small-button capture" disabled={audioBusy || (id === "device" && !selectedDeviceId)} onClick={() => void capture(id)}>{id === "microphone" ? "CAPTURE MIC" : id === "device" ? "CONNECT DEVICE" : "CAPTURE DESKTOP AUDIO"}</button>}
             </div>
           </div>
