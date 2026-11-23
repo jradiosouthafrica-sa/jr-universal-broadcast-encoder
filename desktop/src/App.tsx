@@ -30,9 +30,12 @@ export default function App() {
     const timer = window.setInterval(() => {
       const current = engineRef.current;
       if (!current) return;
+      const micActive = current.isSourceActive("microphone");
+      const desktopActive = current.isSourceActive("desktop");
+      setActive(previous => previous.microphone === micActive && previous.desktop === desktopActive ? previous : { microphone: micActive, desktop: desktopActive });
       setLevels({ microphone: current.getSourceLevel("microphone"), desktop: current.getSourceLevel("desktop") });
       setMasterLevel(current.getMasterLevel());
-      setMixReady(current.isSourceActive("microphone") || current.isSourceActive("desktop"));
+      setMixReady(micActive || desktopActive);
     }, 100);
     return () => window.clearInterval(timer);
   }, []);
