@@ -116,8 +116,8 @@ class _StudioHomeState extends State<StudioHome> {
     });
   }
 
-  Future<void> _startBroadcast() async {
-    if (!_formKey.currentState!.validate() || _busy) return;
+  Future<bool> _startBroadcast() async {
+    if (!_formKey.currentState!.validate() || _busy) return false;
     setState(() => _busy = true);
     InputDevice? selectedInput;
     for (final device in _inputDevices) {
@@ -140,10 +140,12 @@ class _StudioHomeState extends State<StudioHome> {
     _service = service;
     try {
       await service.start(profile);
+      return true;
     } catch (error) {
       await service.dispose();
       _service = null;
       _setStatus('error', error.toString().replaceFirst('Bad state: ', ''));
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -152,7 +154,10 @@ class _StudioHomeState extends State<StudioHome> {
   Future<void> _openAutomationBrowser() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => const AutomationBrowserPage(),
+        builder: (_) => AutomationBrowserPage(
+          onStartBroadcast: _startBroadcast,
+          onStopBroadcast: _stopBroadcast,
+        ),
       ),
     );
   }
@@ -349,7 +354,11 @@ class _StudioHomeState extends State<StudioHome> {
                     CircleAvatar(
                       backgroundColor: const Color(0xFF29414B),
                       child: Icon(
-                        _inputMode == MobileInputMode.lineIn ? Icons.cable : Icons.mic,
+                        _inputMode == MobileInputMode.lineIn
+                            ? Icons.cable
+                            : _inputMode == MobileInputMode.automation
+                                ? Icons.radio
+                                : Icons.mic,
                         color: const Color(0xFFF2A33A),
                       ),
                     ),
@@ -357,9 +366,10 @@ class _StudioHomeState extends State<StudioHome> {
                     Expanded(
                       child: Text(
                         _inputMode == MobileInputMode.lineIn
-                            ? _inputMode == MobileInputMode.lineIn
                             ? '3.5 mm headset-mic test: connect the mixer output through a compatible TRRS headset-mic adapter/cable with attenuation. Select Wired headset if Android lists it. This is a mono microphone input, not true stereo line-in; raw audio is used and voice processing is disabled.'
-                            : 'Microphone: use the phone microphone or another supported input. Select the connected input below.',
+                            : _inputMode == MobileInputMode.automation
+                                ? 'Automation programme audio is captured from eligible Android media playback and sent through the AAC encoder. The automation app must allow playback capture.'
+                                : 'Microphone: use the phone microphone or another supported input. Select the connected input below.',
                         style: const TextStyle(color: Color(0xFFAAC0C8), height: 1.4),
                       ),
                     ),
@@ -367,43 +377,45 @@ class _StudioHomeState extends State<StudioHome> {
                 ),
               ),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    key: ValueKey(_selectedInputId),
-                    initialValue: _selectedInputId,
-                    decoration: InputDecoration(
-                      labelText: _inputMode == MobileInputMode.lineIn ? 'Wired / external input' : 'Microphone device',
-                      helperText: _inputMode == MobileInputMode.lineIn
-                          ? 'After plugging in, choose Wired headset if Android lists it'
-                          : 'Choose a connected microphone or default input',
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: '',
-                        child: Text('Default device'),
+            if (_inputMode != MobileInputMode.automation) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey(_selectedInputId),
+                      initialValue: _selectedInputId,
+                      decoration: InputDecoration(
+                        labelText: _inputMode == MobileInputMode.lineIn ? 'Wired / external input' : 'Microphone device',
+                        helperText: _inputMode == MobileInputMode.lineIn
+                            ? 'After plugging in, choose Wired headset if Android lists it'
+                            : 'Choose a connected microphone or default input',
                       ),
-                      ..._inputDevices.map(
-                        (device) => DropdownMenuItem(
-                          value: device.id,
-                          child: Text(device.label, overflow: TextOverflow.ellipsis),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('Default device'),
                         ),
-                      ),
-                    ],
-                    onChanged: (_onAir || _working)
-                        ? null
-                        : (value) => setState(() => _selectedInputId = value ?? ''),
+                        ..._inputDevices.map(
+                          (device) => DropdownMenuItem(
+                            value: device.id,
+                            child: Text(device.label, overflow: TextOverflow.ellipsis),
+                          ),
+                        ),
+                      ],
+                      onChanged: (_onAir || _working)
+                          ? null
+                          : (value) => setState(() => _selectedInputId = value ?? ''),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filledTonal(
-                  tooltip: 'Refresh audio inputs',
-                  onPressed: (_onAir || _working) ? null : _refreshInputDevices,
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    tooltip: 'Refresh audio inputs',
+                    onPressed: (_onAir || _working) ? null : _refreshInputDevices,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
+              ),
+            ],
             if (_inputMode == MobileInputMode.lineIn) ...[
               const SizedBox(height: 7),
               Text(
