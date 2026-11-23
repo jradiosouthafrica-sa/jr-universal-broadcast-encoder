@@ -58,7 +58,7 @@ class StudioHome extends StatefulWidget {
 class _StudioHomeState extends State<StudioHome> {
   final _host = TextEditingController();
   final _port = TextEditingController(text: '8000');
-  final _mount = TextEditingController(text: '/live');
+  final _mount = TextEditingController(text: '/');
   final _username = TextEditingController(text: 'source');
   final _password = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -446,7 +446,7 @@ class _StudioHomeState extends State<StudioHome> {
                     children: [
                       Expanded(child: _field(_port, 'Port', keyboard: TextInputType.number)),
                       const SizedBox(width: 10),
-                      Expanded(child: _field(_mount, 'Mount point', hint: '/live')),
+                      Expanded(child: _field(_mount, 'Mount point', hint: '/ or /live')),
                     ],
                   ),
                   const SizedBox(height: 11),
