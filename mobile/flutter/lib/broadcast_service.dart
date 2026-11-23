@@ -210,6 +210,11 @@ class MobileBroadcastService {
       ),
     );
 
+    final notificationPermission = await FlutterForegroundTask.checkNotificationPermission();
+    if (notificationPermission != NotificationPermission.granted) {
+      await FlutterForegroundTask.requestNotificationPermission();
+    }
+
     await FlutterForegroundTask.startService(
       serviceId: 731,
       notificationTitle: 'JRadio is broadcasting',
@@ -257,10 +262,10 @@ class MobileBroadcastTaskHandler extends TaskHandler {
 
   @override
   void onRepeatEvent(DateTime timestamp) {
-    FlutterForegroundTask.updateService(
+    unawaited(FlutterForegroundTask.updateService(
       notificationTitle: 'JRadio is broadcasting',
       notificationText: 'Your live broadcast is running',
-    );
+    ));
   }
 
   @override
