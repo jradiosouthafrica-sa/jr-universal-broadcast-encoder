@@ -1,4 +1,12 @@
-export type AudioSourceId = "microphone" | "desktop";
+export type AudioSourceId = "microphone" | "desktop" | "device";
+
+export interface AudioInputDevice { deviceId: string; label: string; groupId: string; }
+
+export async function listAudioInputDevices(): Promise<AudioInputDevice[]> {
+  if (!navigator.mediaDevices?.enumerateDevices) throw new Error("Audio device discovery is not supported in this runtime.");
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter(device => device.kind === "audioinput").map((device, index) => ({ deviceId: device.deviceId, label: device.label || "Audio input " + (index + 1), groupId: device.groupId }));
+}
 
 type SourceNodes = {
   stream: MediaStream;
@@ -38,6 +46,13 @@ export class BroadcastAudioEngine {
     await this.start();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     this.attachSource("microphone", stream);
+  }
+
+  async addAudioDevice(deviceId: string): Promise<void> {
+    if (!deviceId) throw new Error("Select an audio input device first.");
+    await this.start();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
+    this.attachSource("device", stream);
   }
 
   async addDesktopAudio(): Promise<void> {
@@ -136,7 +151,7 @@ export class BroadcastAudioEngine {
   }
 
   async stop(): Promise<void> {
-    (["microphone", "desktop"] as const).forEach(id => this.stopSource(id));
+    (["microphone", "desktop", "device"] as const).forEach(id => this.stopSource(id));
     this.destination?.stream.getTracks().forEach(track => track.stop());
     this.masterGain?.disconnect();
     this.masterAnalyser?.disconnect();
