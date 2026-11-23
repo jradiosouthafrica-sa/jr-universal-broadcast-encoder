@@ -4,6 +4,7 @@ Flutter application for the JRadio Universal Broadcast Encoder. Its primary purp
 
 ## Current implementation
 
+- Selectable Microphone, Line-in and Android Automation Playback input modes. Automation playback capture uses Android MediaProjection consent and an AAC-LC native encoder; it is limited to eligible apps/streams that permit capture and requires Android 10+.
 - Selectable Microphone and Line-in test modes using native Android/iOS audio capture and OS-exposed input devices.
 - On Android tablets that expose a 3.5 mm headset microphone as a recording input, Line-in test mode can select that wired headset input. It is a mono microphone-level workaround, not a true stereo line input.
 - Line-in test mode disables automatic gain, echo cancellation and noise suppression where the platform supports those effects, preserving a continuous mixer feed.
@@ -13,14 +14,14 @@ Flutter application for the JRadio Universal Broadcast Encoder. Its primary purp
 - Android foreground service with persistent broadcast notification and a Stop action.
 - Responsive phone/tablet layout.
 - An in-app WebView workspace intended for operating web-based radio automation systems that do not have their own broadcast encoder.
-- The browser workspace is currently a UI/navigation milestone only: its WebView audio is not yet routed into the broadcast encoder. The live source remains the selected microphone or external input until the dedicated automation-audio bridge is implemented and tested.
+- Android automation capture now has a native MediaProjection-to-AAC prototype and a selectable encoder input. It has passed code/build checks only; it still requires physical-device verification with WebView playback and at least one third-party automation app before it can be called working.
 
 ## Important limits
 
 This is an initial mobile broadcast path, not feature parity with the desktop encoder.
 
 - The mobile source currently sends one selected input at a time. For an initial no-USB test, a tablet's 3.5 mm combined headset socket may expose a wired headset microphone input. Select the Wired headset device if Android lists it after connection. This is microphone-level and normally mono; it is not true stereo line-in. To feed a mixer output into it, use a compatible CTIA TRRS mic-input adapter/cable with suitable attenuation. Do not connect a speaker/amp output directly, and start with the mixer output very low to avoid overloading the mic input. Some tablets expose only headphone output or do not enumerate the headset microphone as a selectable input; in that case this route cannot work on that device. Proper stereo line-in will later require a suitable audio interface. Line-in test mode disables voice-processing effects where supported. Multi-channel mixing, browser/app audio capture, SHOUTcast v1/v2 and Android playback capture are not implemented yet. USB/Bluetooth device availability and routing vary by device and still require hardware testing.
-- Android playback capture is restricted to apps and audio streams that allow it. It requires a separate MediaProjection-based implementation and user consent.
+- Android playback capture is restricted to audio using USAGE_MEDIA, USAGE_GAME or USAGE_UNKNOWN whose source app allows capture, and apps must be in the same Android user profile. It requires user consent through MediaProjection. Apps that block capture, DRM-protected streams, or audio routed outside Android playback capture may not be available. It is not a universal guarantee for every automation app.
 - iOS does not permit unrestricted capture of other apps' audio. Background microphone operation depends on the approved audio background mode and must be verified on a physical iPhone/iPad.
 - The current Icecast socket uses plain TCP. TLS/HTTPS source connections, metadata updates and a persistent replay buffer are not implemented.
 - Reconnect resumes the live feed after a connection returns; audio produced while disconnected is dropped rather than replayed.
