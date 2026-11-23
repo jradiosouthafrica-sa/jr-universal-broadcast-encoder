@@ -7,7 +7,14 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// Audio routing from WebView playback into the broadcast encoder is a separate
 /// native audio milestone and must not be implied by the browser being visible.
 class AutomationBrowserPage extends StatefulWidget {
-  const AutomationBrowserPage({super.key});
+  const AutomationBrowserPage({
+    super.key,
+    required this.onStartBroadcast,
+    required this.onStopBroadcast,
+  });
+
+  final Future<bool> Function() onStartBroadcast;
+  final Future<void> Function() onStopBroadcast;
 
   @override
   State<AutomationBrowserPage> createState() => _AutomationBrowserPageState();
@@ -17,6 +24,8 @@ class _AutomationBrowserPageState extends State<AutomationBrowserPage> {
   final TextEditingController _addressController = TextEditingController();
   late final WebViewController _webController;
   bool _loading = false;
+  bool _broadcastRequestStarted = false;
+  bool _broadcastBusy = false;
   String? _error;
   String _currentAddress = '';
 
@@ -78,6 +87,35 @@ class _AutomationBrowserPageState extends State<AutomationBrowserPage> {
       return null;
     }
     return uri;
+  }
+
+  Future<void> _startBroadcastFromBrowser() async {
+    if (_broadcastBusy || _broadcastRequestStarted) return;
+    setState(() => _broadcastBusy = true);
+    final started = await widget.onStartBroadcast();
+    if (!mounted) return;
+    setState(() {
+      _broadcastBusy = false;
+      _broadcastRequestStarted = started;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(started
+            ? 'Broadcast started. Keep the automation playing in this browser.'
+            : 'Broadcast did not start. Return to the encoder settings and check the error.'),
+      ),
+    );
+  }
+
+  Future<void> _stopBroadcastFromBrowser() async {
+    if (_broadcastBusy) return;
+    setState(() => _broadcastBusy = true);
+    await widget.onStopBroadcast();
+    if (!mounted) return;
+    setState(() {
+      _broadcastBusy = false;
+      _broadcastRequestStarted = false;
+    });
   }
 
   Future<void> _openAddress([String? address]) async {
@@ -168,17 +206,39 @@ class _AutomationBrowserPageState extends State<AutomationBrowserPage> {
           ),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
             color: const Color(0xFF192832),
-            child: const Text(
-              'IN-APP AUTOMATION BROWSER',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF90A6AF),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.3,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _broadcastRequestStarted
+                        ? 'BROADCAST REQUESTED — KEEP PROGRAMME PLAYING'
+                        : 'AUTOMATION BROWSER',
+                    style: const TextStyle(
+                      color: Color(0xFF90A6AF),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: .7,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _broadcastBusy
+                      ? null
+                      : _broadcastRequestStarted
+                          ? _stopBroadcastFromBrowser
+                          : _startBroadcastFromBrowser,
+                  child: _broadcastBusy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(_broadcastRequestStarted ? 'STOP' : 'GO LIVE'),
+                ),
+              ],
             ),
           ),
         ],
