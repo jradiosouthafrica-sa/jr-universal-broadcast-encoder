@@ -6,7 +6,7 @@ The goal is to let a broadcaster combine supported audio sources—websites, des
 
 ## Project status
 
-**Stage:** Desktop prototype — microphone/desktop capture, mixing and first Icecast output path are committed. The live path requires FFmpeg installed on the desktop machine. It has not yet been verified against a real station server. SHOUTcast, AzuraCast, mobile broadcasting, integrated browser capture and native per-application capture remain in development. Platform support will be added and verified in stages; do not treat the roadmap as a claim that every platform already supports every capture mode.
+**Stage:** Desktop prototype — microphone/desktop capture, mixing and first Icecast output path are committed. Mobile prototype — microphone-to-AAC-LC streaming to Icecast-compatible servers, reconnect logic and Android foreground-notification integration are committed. Neither desktop nor mobile live output has yet been verified against a real station server or physical-device background tests. SHOUTcast adapters, mobile multi-source mixing, eligible Android playback capture, and integrated browser capture remain in development. Platform support will be added and verified in stages; do not treat the roadmap as a claim that every platform already supports every capture mode.
 
 ## Planned platforms
 
@@ -23,7 +23,7 @@ The goal is to let a broadcaster combine supported audio sources—websites, des
 - Encode supported formats and bitrates. (Initial FFmpeg-backed Icecast output path implemented; requires FFmpeg on PATH.)
 - Broadcast to Icecast, SHOUTcast (including supported v1/v2 source configurations), AzuraCast and compatible servers.
 - Save station profiles, monitor connection health and reconnect after interruptions.
-- Support background broadcasting on mobile where the operating system permits it.
+- Support background broadcasting on mobile where the operating system permits it. (Android foreground-service prototype added; iOS and physical-device behaviour still require validation.)
 
 ## Important platform limits
 
