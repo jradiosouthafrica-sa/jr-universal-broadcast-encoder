@@ -26,7 +26,7 @@ npm run build
 - Selectable audio input devices, including physical soundcards, USB interfaces, line inputs and installed virtual audio cable/loopback devices exposed by the operating system.
 - Route another application's playback output to a virtual cable, then select that cable as the encoder input channel. The virtual cable driver is installed separately; the app does not create one.
 - Desktop/system audio capture through the OS sharing picker, where supported.
-- Independent microphone and desktop channel gain/mute controls, meters and a master mix.
+- Independent microphone, desktop and selected-device channel gain/mute controls, meters and a master mix.
 - A mixed audio stream is passed to Electron's main process.
 - The first live output adapter supports Icecast source connections. FFmpeg converts the app's WebM/Opus capture stream to the selected MP3, AAC, Ogg Vorbis or Ogg Opus output format.
 - The source password is sent from the desktop main process to the Icecast server; it is not placed in a URL or logged by the application.
