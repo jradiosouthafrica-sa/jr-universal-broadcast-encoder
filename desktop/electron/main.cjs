@@ -18,8 +18,9 @@ function isProfile(value) {
 function registerProfileStorage() {
   ipcMain.handle("profile:save", async (_event, profile) => {
     if (!isProfile(profile)) return { ok: false, error: "Invalid profile data." };
-    if (!safeStorage.isEncryptionAvailable()) {
-      return { ok: false, error: "Secure credential storage is unavailable on this device. No profile was saved." };
+    const storageBackend = safeStorage.getSelectedStorageBackend?.();
+    if (!safeStorage.isEncryptionAvailable() || storageBackend === "basic_text") {
+      return { ok: false, error: "A secure operating-system credential store is unavailable. No profile was saved." };
     }
     const serialized = JSON.stringify(profile);
     if (Buffer.byteLength(serialized, "utf8") > MAX_PROFILE_BYTES) {
@@ -38,8 +39,9 @@ function registerProfileStorage() {
   });
 
   ipcMain.handle("profile:load", async () => {
-    if (!safeStorage.isEncryptionAvailable()) {
-      return { ok: false, error: "Secure credential storage is unavailable on this device." };
+    const storageBackend = safeStorage.getSelectedStorageBackend?.();
+    if (!safeStorage.isEncryptionAvailable() || storageBackend === "basic_text") {
+      return { ok: false, error: "A secure operating-system credential store is unavailable." };
     }
     try {
       const encrypted = await fs.readFile(path.join(app.getPath("userData"), PROFILE_FILE));
