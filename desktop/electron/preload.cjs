@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("jradio", Object.freeze({
+  platform: process.platform,
   saveProfile: (profile) => ipcRenderer.invoke("profile:save", profile),
   loadProfile: () => ipcRenderer.invoke("profile:load"),
   startBroadcast: (profile) => ipcRenderer.invoke("broadcast:start", profile),
