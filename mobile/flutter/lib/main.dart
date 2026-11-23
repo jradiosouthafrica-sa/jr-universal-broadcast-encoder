@@ -75,6 +75,10 @@ class _StudioHomeState extends State<StudioHome> {
 
   bool get _onAir => _status == 'live';
   bool get _working => _status == 'connecting' || _status == 'reconnecting';
+  bool get _hasWiredHeadsetInput => _inputDevices.any(
+        (device) => RegExp(r'(wired|headset|headphone)', caseSensitive: false)
+            .hasMatch(device.label),
+      );
 
   @override
   void initState() {
@@ -342,6 +346,21 @@ class _StudioHomeState extends State<StudioHome> {
                 ),
               ],
             ),
+            if (_inputMode == MobileInputMode.lineIn) ...[
+              const SizedBox(height: 7),
+              Text(
+                _hasWiredHeadsetInput
+                    ? 'Wired headset microphone input detected. Select it above.'
+                    : 'No wired headset microphone is listed yet. Plug in your headset/adapter, then refresh. If it still does not appear, this tablet may not expose its 3.5 mm socket as an audio input.',
+                style: TextStyle(
+                  color: _hasWiredHeadsetInput
+                      ? const Color(0xFF35D39A)
+                      : const Color(0xFFE7B66C),
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             _sectionTitle('STATION CONNECTION'),
             Form(
