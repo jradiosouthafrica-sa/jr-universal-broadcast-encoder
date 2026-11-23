@@ -2,7 +2,7 @@
 
 A free, open-source, cross-platform broadcast encoder for radio stations.
 
-The goal is to let a broadcaster combine supported audio sources—websites, desktop applications, microphone and external audio devices—then encode and send one programme feed to an Icecast-compatible server, including AzuraCast and Shoutcast deployments.
+The goal is to let a broadcaster combine supported audio sources—websites, desktop applications, microphone and external audio devices—then encode and send one programme feed to Icecast, SHOUTcast, AzuraCast and compatible streaming servers.
 
 ## Project status
 
