@@ -12,7 +12,14 @@ function isProfile(value) {
   for (const key of ["mountPoint", "sourceUsername", "streamId"]) {
     if (value[key] !== undefined && (typeof value[key] !== "string" || value[key].length > 2048)) return false;
   }
-  return ["icecast", "shoutcast-v1", "shoutcast-v2", "azuracast"].includes(value.type);
+  if (!["icecast", "shoutcast-v1", "shoutcast-v2", "azuracast"].includes(value.type)) return false;
+  if (!["mp3", "aac", "ogg", "opus"].includes(value.codec)) return false;
+  if (!/^\\d+$/.test(value.port) || Number(value.port) < 1 || Number(value.port) > 65535) return false;
+  if (!/^\\d+$/.test(value.bitrateKbps) || Number(value.bitrateKbps) < 1 || Number(value.bitrateKbps) > 1000) return false;
+  if (!value.name.trim() || !value.host.trim() || !value.sourcePassword) return false;
+  if (value.type === "icecast" && (!value.mountPoint || !value.mountPoint.trim().startsWith("/"))) return false;
+  if (value.type === "shoutcast-v2" && (!value.streamId || !/^\\d+$/.test(value.streamId) || Number(value.streamId) < 1)) return false;
+  return true;
 }
 
 function registerProfileStorage() {
