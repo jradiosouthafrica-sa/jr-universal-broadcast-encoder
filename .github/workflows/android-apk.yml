@@ -1,0 +1,89 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/flutter/**"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android platform scaffold
+        working-directory: mobile/flutter
+        run: flutter create --platforms=android --project-name jr_universal_broadcast_encoder .
+
+      - name: Configure Android permissions and microphone foreground service
+        working-directory: mobile/flutter
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path("android/app/src/main/AndroidManifest.xml")
+          manifest = path.read_text()
+          permissions = [
+              "android.permission.INTERNET",
+              "android.permission.RECORD_AUDIO",
+              "android.permission.FOREGROUND_SERVICE",
+              "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+              "android.permission.POST_NOTIFICATIONS",
+              "android.permission.WAKE_LOCK",
+          ]
+          for permission in permissions:
+              tag = f'<uses-permission android:name="{permission}" />'
+              if permission not in manifest:
+                  manifest = manifest.replace("<application", f"    {tag}\\n    <application", 1)
+          service = """        <service
+                  android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+                  android:foregroundServiceType="microphone"
+                  android:exported="false" />"""
+          if "com.pravera.flutter_foreground_task.service.ForegroundService" not in manifest:
+              manifest = manifest.replace("</application>", service + "\\n    </application>", 1)
+          path.write_text(manifest)
+
+      - name: Install Flutter packages
+        working-directory: mobile/flutter
+        run: flutter pub get
+
+      - name: Analyze Dart code
+        working-directory: mobile/flutter
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: mobile/flutter
+        run: flutter test
+
+      - name: Build release APK
+        working-directory: mobile/flutter
+        run: flutter build apk --release
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jradio-universal-broadcast-encoder-android-apk
+          path: mobile/flutter/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
