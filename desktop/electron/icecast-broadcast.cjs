@@ -79,7 +79,6 @@ class IcecastBroadcast {
           `Content-Type: ${contentTypes[profile.codec]}`,
           `Ice-Name: ${String(profile.name).replace(/[\\r\\n]/g, " ")}`,
           "Ice-Public: 0",
-          "Connection: close",
           "",
           ""
         ].join("\r\n"));
