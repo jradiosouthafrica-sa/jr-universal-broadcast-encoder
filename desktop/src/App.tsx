@@ -120,10 +120,21 @@ export default function App() {
   };
   const stopBroadcast = async () => {
     setAudioBusy(true);
-    try { const recorder = recorderRef.current; if (recorder && recorder.state !== "inactive") recorder.stop(); recorderRef.current = null; await window.jradio?.stopBroadcast(); setBroadcasting(false); setAudioMessage("Broadcast stopped. Your audio sources remain available in the mixer."); }
+    try {
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        await new Promise<void>(resolve => { recorder.addEventListener("stop", () => resolve(), { once: true }); recorder.stop(); });
+      }
+      await chunkQueueRef.current;
+      recorderRef.current = null;
+      await window.jradio?.stopBroadcast();
+      setBroadcasting(false);
+      setAudioMessage("Broadcast stopped. Your audio sources remain available in the mixer.");
+    }
     finally { setAudioBusy(false); }
   };
   const stopAllAudio = async () => {
+    if (broadcasting) await stopBroadcast();
     await engineRef.current?.stop();
     engineRef.current = null;
     setActive({ microphone: false, desktop: false });
@@ -155,7 +166,7 @@ export default function App() {
   const meterBars = (level: number) => Array.from({ length: 18 }, (_, i) => <span key={i} className={i < Math.round(level * 18) ? "lit" : ""} />);
 
   return <main className="studio">
-    <header className="topbar"><div className="brand"><span className="brand-mark">JR</span><div><strong>JRadio</strong><small>UNIVERSAL BROADCAST ENCODER</small></div></div><span className="status"><i className={mixReady ? "active" : ""} /> {mixReady ? "AUDIO MIX READY" : "NOT BROADCASTING"}</span></header>
+    <header className="topbar"><div className="brand"><span className="brand-mark">JR</span><div><strong>JRadio</strong><small>UNIVERSAL BROADCAST ENCODER</small></div></div><span className="status"><i className={mixReady ? "active" : ""} /> {broadcasting ? "ON AIR" : mixReady ? "AUDIO MIX READY" : "NOT BROADCASTING"}</span></header>
     <section className="welcome"><p className="eyebrow">BROADCAST CONTROL ROOM</p><h1>Your sound. <span>Your station.</span></h1><p className="intro">Capture supported audio sources, mix them into one programme feed, then send that feed to your radio server.</p></section>
     <section className="panel"><div className="section-heading"><div><p className="eyebrow">INPUTS</p><h2>Audio channels</h2></div><span className="muted">Live capture controls</span></div>
       <div className="audio-sources">
