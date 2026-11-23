@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, safeStorage } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
+const { IcecastBroadcast } = require("./icecast-broadcast.cjs");
+const broadcast = new IcecastBroadcast();
 
 const PROFILE_FILE = "server-profile.enc";
 const MAX_PROFILE_BYTES = 16 * 1024;
@@ -63,6 +65,17 @@ function registerProfileStorage() {
   });
 }
 
+function registerBroadcastHandlers() {
+  ipcMain.handle("broadcast:start", async (event, profile) => {
+    try { return await broadcast.start(profile, event.sender.id); }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Could not start broadcast." }; }
+  });
+  ipcMain.on("broadcast:chunk", (event, chunk) => {
+    if (!(chunk instanceof Uint8Array) || chunk.byteLength > 1024 * 1024) return;
+    broadcast.write(event.sender.id, Buffer.from(chunk));
+  });
+  ipcMain.handle("broadcast:stop", event => { broadcast.stop(event.sender.id); return { ok: true }; });
+}
 function createWindow() {
   const window = new BrowserWindow({
     width: 1440,
@@ -88,11 +101,14 @@ function createWindow() {
 
 app.whenReady().then(() => {
   registerProfileStorage();
+  registerBroadcastHandlers();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+
+app.on("before-quit", () => broadcast.stop());
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
