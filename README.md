@@ -23,7 +23,7 @@ This repository is the start of the project. Audio capture, mixing, encoding and
 - Mix independent sources with channel faders, mute controls, meters and a master output.
 - Mix microphone input with programme audio.
 - Encode supported formats and bitrates.
-- Broadcast to Icecast, AzuraCast and compatible Shoutcast servers.
+- Broadcast to Icecast, SHOUTcast (including supported v1/v2 source configurations), AzuraCast and compatible servers.
 - Save station profiles, monitor connection health and reconnect after interruptions.
 - Support background broadcasting on mobile where the operating system permits it.
 
