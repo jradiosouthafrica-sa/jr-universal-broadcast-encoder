@@ -152,6 +152,9 @@ class _StudioHomeState extends State<StudioHome> {
   }
 
   Future<void> _openAutomationBrowser() async {
+    if (_inputMode != MobileInputMode.automation) {
+      setState(() => _inputMode = MobileInputMode.automation);
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => AutomationBrowserPage(
