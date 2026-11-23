@@ -64,22 +64,23 @@ Each milestone must have a demonstrable result and a recorded test outcome befor
 
 ## 5. Android
 
-- [ ] Create Flutter application shell.
-- [ ] Implement microphone and external input capture.
+- [x] Create Flutter application shell and responsive phone/tablet broadcast console (prototype).
+- [x] Implement a microphone-to-AAC-LC stream and direct Icecast source connection (implementation prototype; device/server validation open).
+- [ ] Add selectable external input capture and multiple-source mixing.
 - [ ] Implement eligible Android playback capture with clear limitations.
-- [ ] Add foreground broadcast service and persistent notification controls.
-- [ ] Test screen lock, app switching, audio focus and battery behaviour.
+- [x] Add Android foreground-service integration and persistent notification Stop control (manifest integration and device validation remain open).
+- [ ] Test screen lock, app switching, audio focus and battery behaviour on physical Android devices.
 - [ ] Test USB/Bluetooth routing on supported devices.
 
 **Acceptance:** A supported source remains on-air during screen lock and app switching with a visible notification and working stop control.
 
 ## 6. iOS / iPadOS
 
-- [ ] Create Flutter iOS shell and native audio-session integration.
-- [ ] Implement microphone and supported external inputs.
-- [ ] Validate background broadcast under Apple's permitted audio-session behaviour.
-- [ ] Document unsupported third-party app/browser capture cases.
-- [ ] Test interruptions, route changes and background transitions.
+- [x] Create Flutter iOS-compatible shell and microphone-to-AAC streaming path (implementation prototype).
+- [ ] Add and validate iOS audio-session/background-mode configuration on a physical device.
+- [ ] Implement supported external inputs.
+- [x] Document unsupported third-party app/browser capture cases.
+- [ ] Test interruptions, route changes and background transitions on physical iPhone/iPad devices.
 
 **Acceptance:** Supported input can broadcast in permitted background scenarios; unsupported capture requests are clearly explained.
 
