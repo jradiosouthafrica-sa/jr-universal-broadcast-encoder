@@ -24,6 +24,7 @@ export default function App() {
   const [masterLevel, setMasterLevel] = useState(0);
   const [mixReady, setMixReady] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastConnectionState, setBroadcastConnectionState] = useState("stopped");
   const [inputDevices, setInputDevices] = useState<AudioInputDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [deviceWarning, setDeviceWarning] = useState("");
@@ -64,6 +65,7 @@ export default function App() {
   useEffect(() => {
     if (!window.jradio) return;
     return window.jradio.onBroadcastState(event => {
+      setBroadcastConnectionState(event.state);
       setAudioMessage(event.message);
       if (event.state === "error" || event.state === "stopped") {
         setBroadcasting(false);
@@ -190,7 +192,8 @@ export default function App() {
       recorder.onerror = () => { setAudioMessage("Audio capture failed. Stopping the broadcast."); void window.jradio?.stopBroadcast(); setBroadcasting(false); };
       recorder.onstop = () => { recorderRef.current = null; };
       recorderRef.current = recorder; recorder.start(250); setBroadcasting(true);
-      setAudioMessage("LIVE · Icecast accepted the source connection. Encoded audio is being sent.");
+      setBroadcastConnectionState("connecting");
+      setAudioMessage("Broadcast encoder started. Connecting to Icecast; automatic reconnect is enabled.");
     } catch (error) { await window.jradio.stopBroadcast(); setBroadcasting(false); setAudioMessage(error instanceof Error ? error.message : "Could not start the broadcast."); }
     finally { setAudioBusy(false); }
   };
@@ -205,6 +208,7 @@ export default function App() {
       recorderRef.current = null;
       await window.jradio?.stopBroadcast();
       setBroadcasting(false);
+      setBroadcastConnectionState("stopped");
       setAudioMessage("Broadcast stopped. Your audio sources remain available in the mixer.");
     }
     finally { setAudioBusy(false); }
@@ -243,7 +247,7 @@ export default function App() {
   const meterBars = (level: number) => Array.from({ length: 18 }, (_, i) => <span key={i} className={i < Math.round(level * 18) ? "lit" : ""} />);
 
   return <main className="studio">
-    <header className="topbar"><div className="brand"><span className="brand-mark">JR</span><div><strong>JRadio</strong><small>UNIVERSAL BROADCAST ENCODER</small></div></div><span className="status"><i className={mixReady ? "active" : ""} /> {broadcasting ? "ON AIR" : mixReady ? "AUDIO MIX READY" : "NOT BROADCASTING"}</span></header>
+    <header className="topbar"><div className="brand"><span className="brand-mark">JR</span><div><strong>JRadio</strong><small>UNIVERSAL BROADCAST ENCODER</small></div></div><span className="status"><i className={mixReady ? "active" : ""} /> {broadcasting ? (broadcastConnectionState === "live" ? "ON AIR" : broadcastConnectionState === "reconnecting" ? "RECONNECTING" : "CONNECTING") : mixReady ? "AUDIO MIX READY" : "NOT BROADCASTING"}</span></header>
     <section className="welcome"><p className="eyebrow">BROADCAST CONTROL ROOM</p><h1>Your sound. <span>Your station.</span></h1><p className="intro">Capture supported audio sources, mix them into one programme feed, then send that feed to your radio server.</p></section>
     <section className="panel"><div className="section-heading"><div><p className="eyebrow">INPUTS</p><h2>Audio channels</h2></div><span className="muted">Live capture controls</span></div>
       <div className="audio-sources">
@@ -278,7 +282,7 @@ export default function App() {
       </div>
       <div className="validation-area"><button type="button" className="validate-button" onClick={()=>setValidationRequested(true)}>VALIDATE PROFILE</button><button type="button" className="validate-button" onClick={saveProfile} disabled={storageBusy}>SAVE SECURELY</button><button type="button" className="validate-button" onClick={loadProfile} disabled={storageBusy}>LOAD SAVED PROFILE</button>{validationRequested&&<div className={validation.valid?"validation-success":"validation-errors"}>{validation.valid?"Profile fields look valid. This does not test a server connection.":<ul>{validation.errors.map(error=><li key={error}>{error}</li>)}</ul>}</div>}{storageMessage&&<p className="field-help" role="status">{storageMessage}</p>}</div>
     </section>
-    <section className="lower-grid"><article className="panel"><p className="eyebrow">MASTER BUS</p><h2>Programme output</h2><div className="master-meter"><span style={{ width: `${Math.round(masterLevel * 100)}%` }}/></div><div className="master-value">{Math.round(masterLevel * 100)}% signal</div><div className="master-controls"><label>Master volume <input type="range" min="0" max="100" value={Math.round(masterVolume * 100)} onChange={e => changeMasterVolume(Number(e.target.value))}/></label><button className="small-button" onClick={toggleMasterMute}>{masterMuted ? "UNMUTE MASTER" : "MUTE MASTER"}</button></div><p className="muted">The programme mix combines active input channels into one audio stream.</p></article><article className="panel master"><p className="eyebrow">BROADCAST STATUS</p><h2>{broadcasting ? "Broadcast is live" : "Ready to broadcast"}</h2><div className="placeholder">{broadcasting ? "Your programme mix is being encoded by FFmpeg and sent to the Icecast source." : "Connect a source, complete the server profile and start the Icecast broadcast. FFmpeg must be installed and available on PATH."}</div>{broadcasting ? <button type="button" className="live-stop" disabled={audioBusy} onClick={() => void stopBroadcast()}>STOP BROADCAST</button> : <button type="button" disabled={!mixReady || audioBusy} onClick={() => void startBroadcast()}>START ICECAST BROADCAST</button>}</article></section>
+    <section className="lower-grid"><article className="panel"><p className="eyebrow">MASTER BUS</p><h2>Programme output</h2><div className="master-meter"><span style={{ width: `${Math.round(masterLevel * 100)}%` }}/></div><div className="master-value">{Math.round(masterLevel * 100)}% signal</div><div className="master-controls"><label>Master volume <input type="range" min="0" max="100" value={Math.round(masterVolume * 100)} onChange={e => changeMasterVolume(Number(e.target.value))}/></label><button className="small-button" onClick={toggleMasterMute}>{masterMuted ? "UNMUTE MASTER" : "MUTE MASTER"}</button></div><p className="muted">The programme mix combines active input channels into one audio stream.</p></article><article className="panel master"><p className="eyebrow">BROADCAST STATUS</p><h2>{broadcasting ? "Broadcast is live" : "Ready to broadcast"}</h2><div className="placeholder">{broadcasting ? (broadcastConnectionState === "live" ? "Your programme mix is being encoded and sent to Icecast." : "The encoder remains active and is attempting to connect or reconnect. Audio is buffered temporarily while the server is unavailable.") : "Connect a source, complete the server profile and start the Icecast broadcast. FFmpeg must be installed and available on PATH."}</div>{broadcasting ? <button type="button" className="live-stop" disabled={audioBusy} onClick={() => void stopBroadcast()}>STOP BROADCAST</button> : <button type="button" disabled={!mixReady || audioBusy} onClick={() => void startBroadcast()}>START ICECAST BROADCAST</button>}</article></section>
     <footer>JRadio Universal Broadcast Encoder <span>Free and open-source project · Development build</span></footer>
   </main>;
 }
