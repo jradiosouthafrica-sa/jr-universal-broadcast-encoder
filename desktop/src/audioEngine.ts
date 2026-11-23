@@ -5,6 +5,8 @@ type SourceNodes = {
   source: MediaStreamAudioSourceNode;
   gain: GainNode;
   analyser: AnalyserNode;
+  volume: number;
+  muted: boolean;
 };
 
 export class BroadcastAudioEngine {
@@ -63,7 +65,7 @@ export class BroadcastAudioEngine {
     source.connect(gain);
     gain.connect(analyser);
     analyser.connect(this.masterGain);
-    this.sources.set(id, { stream, source, gain, analyser });
+    this.sources.set(id, { stream, source, gain, analyser, volume: 1, muted: false });
     stream.getAudioTracks().forEach(track => {
       track.addEventListener("ended", () => {
         if (this.sources.get(id)?.stream === stream) this.stopSource(id);
@@ -73,12 +75,12 @@ export class BroadcastAudioEngine {
 
   setSourceVolume(id: AudioSourceId, value: number): void {
     const source = this.sources.get(id);
-    if (source && this.context) source.gain.gain.setTargetAtTime(Math.max(0, Math.min(1, value)), this.context.currentTime, 0.015);
+    if (source && this.context) { source.volume = Math.max(0, Math.min(1, value)); source.gain.gain.setTargetAtTime(source.muted ? 0 : source.volume, this.context.currentTime, 0.015); }
   }
 
   setSourceMuted(id: AudioSourceId, muted: boolean): void {
     const source = this.sources.get(id);
-    if (source && this.context) source.gain.gain.setTargetAtTime(muted ? 0 : 1, this.context.currentTime, 0.015);
+    if (source && this.context) { source.muted = muted; source.gain.gain.setTargetAtTime(muted ? 0 : source.volume, this.context.currentTime, 0.015); }
   }
 
   setMasterVolume(value: number): void {
