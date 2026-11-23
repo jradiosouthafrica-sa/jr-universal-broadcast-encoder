@@ -9,12 +9,14 @@ export async function listAudioInputDevices(): Promise<AudioInputDevice[]> {
 }
 
 type SourceNodes = {
-  stream: MediaStream;
-  source: MediaStreamAudioSourceNode;
+  stream?: MediaStream;
+  source?: AudioNode;
   gain: GainNode;
   analyser: AnalyserNode;
   volume: number;
   muted: boolean;
+  nextStartTime: number;
+  pendingBytes: Uint8Array;
 };
 
 export class BroadcastAudioEngine {
@@ -57,7 +59,6 @@ export class BroadcastAudioEngine {
 
   async addDesktopAudio(): Promise<void> {
     await this.start();
-    // The OS/browser capture picker controls which screen, window or tab is shared.
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
     stream.getVideoTracks().forEach(track => track.stop());
     if (stream.getAudioTracks().length === 0) {
@@ -65,6 +66,46 @@ export class BroadcastAudioEngine {
       throw new Error("No desktop audio was shared. Choose a tab/window or screen with audio sharing enabled.");
     }
     this.attachSource("desktop", stream);
+  }
+
+  async addPcmSource(id: AudioSourceId): Promise<void> {
+    await this.start();
+    if (!this.context || !this.masterGain) throw new Error("Audio engine is not ready.");
+    this.stopSource(id);
+    const gain = this.context.createGain();
+    const analyser = this.context.createAnalyser();
+    analyser.fftSize = 1024;
+    gain.connect(analyser);
+    analyser.connect(this.masterGain);
+    this.sources.set(id, { gain, analyser, volume: 1, muted: false, nextStartTime: 0, pendingBytes: new Uint8Array(0) });
+  }
+
+  addPcmChunk(id: AudioSourceId, bytes: Uint8Array): void {
+    const item = this.sources.get(id);
+    if (!item || !this.context || !bytes.length) return;
+    // FFmpeg emits signed 16-bit little-endian stereo PCM at 48 kHz.
+    const combined = new Uint8Array(item.pendingBytes.length + bytes.length);
+    combined.set(item.pendingBytes);
+    combined.set(bytes, item.pendingBytes.length);
+    const usableLength = combined.length - (combined.length % 4);
+    item.pendingBytes = combined.slice(usableLength);
+    if (!usableLength) return;
+    const frames = usableLength / 4;
+    const audioBuffer = this.context.createBuffer(2, frames, 48000);
+    const left = audioBuffer.getChannelData(0);
+    const right = audioBuffer.getChannelData(1);
+    const view = new DataView(combined.buffer, combined.byteOffset, usableLength);
+    for (let frame = 0; frame < frames; frame++) {
+      left[frame] = view.getInt16(frame * 4, true) / 32768;
+      right[frame] = view.getInt16(frame * 4 + 2, true) / 32768;
+    }
+    const node = this.context.createBufferSource();
+    node.buffer = audioBuffer;
+    node.connect(item.gain);
+    const startAt = Math.max(this.context.currentTime + 0.025, item.nextStartTime);
+    node.start(startAt);
+    item.nextStartTime = startAt + audioBuffer.duration;
+    node.onended = () => node.disconnect();
   }
 
   private attachSource(id: AudioSourceId, stream: MediaStream): void {
@@ -80,7 +121,7 @@ export class BroadcastAudioEngine {
     source.connect(gain);
     gain.connect(analyser);
     analyser.connect(this.masterGain);
-    this.sources.set(id, { stream, source, gain, analyser, volume: 1, muted: false });
+    this.sources.set(id, { stream, source, gain, analyser, volume: 1, muted: false, nextStartTime: 0, pendingBytes: new Uint8Array(0) });
     stream.getAudioTracks().forEach(track => {
       track.addEventListener("ended", () => {
         if (this.sources.get(id)?.stream === stream) this.stopSource(id);
@@ -109,9 +150,7 @@ export class BroadcastAudioEngine {
   }
 
   private applyMasterGain(): void {
-    if (this.masterGain && this.context) {
-      this.masterGain.gain.setTargetAtTime(this.masterMuted ? 0 : this.masterVolume, this.context.currentTime, 0.015);
-    }
+    if (this.masterGain && this.context) this.masterGain.gain.setTargetAtTime(this.masterMuted ? 0 : this.masterVolume, this.context.currentTime, 0.015);
   }
 
   getBroadcastStream(): MediaStream {
@@ -128,25 +167,17 @@ export class BroadcastAudioEngine {
     return Math.min(1, Math.sqrt(sum / samples.length) * 3);
   }
 
-  getSourceLevel(id: AudioSourceId): number {
-    return this.readLevel(this.sources.get(id)?.analyser ?? null);
-  }
-
-  getMasterLevel(): number {
-    return this.readLevel(this.masterAnalyser);
-  }
-
-  isSourceActive(id: AudioSourceId): boolean {
-    return this.sources.has(id);
-  }
+  getSourceLevel(id: AudioSourceId): number { return this.readLevel(this.sources.get(id)?.analyser ?? null); }
+  getMasterLevel(): number { return this.readLevel(this.masterAnalyser); }
+  isSourceActive(id: AudioSourceId): boolean { return this.sources.has(id); }
 
   stopSource(id: AudioSourceId): void {
     const item = this.sources.get(id);
     if (!item) return;
-    item.source.disconnect();
+    item.source?.disconnect();
     item.gain.disconnect();
     item.analyser.disconnect();
-    item.stream.getTracks().forEach(track => track.stop());
+    item.stream?.getTracks().forEach(track => track.stop());
     this.sources.delete(id);
   }
 
