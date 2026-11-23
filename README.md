@@ -58,7 +58,7 @@ Technology choices remain subject to prototype testing and dependency-license re
 2. Desktop application shell and integrated browser.
 3. Audio-device discovery and desktop capture prototype.
 4. Mixer, metering and microphone integration.
-5. Encoder and Icecast-compatible output.
+5. Encoder with Icecast and SHOUTcast output adapters, plus AzuraCast compatibility.
 6. Android capture and foreground/background broadcasting.
 7. iOS implementation within Apple platform capabilities.
 8. macOS/Linux validation, packaging and release preparation.
