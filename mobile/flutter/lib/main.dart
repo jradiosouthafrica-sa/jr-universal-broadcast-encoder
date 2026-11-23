@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:record/record.dart';
 
+import 'automation_browser.dart';
 import 'broadcast_service.dart';
 
 void main() {
@@ -148,6 +149,14 @@ class _StudioHomeState extends State<StudioHome> {
     }
   }
 
+  Future<void> _openAutomationBrowser() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const AutomationBrowserPage(),
+      ),
+    );
+  }
+
   Future<void> _stopBroadcast() async {
     final service = _service;
     if (service == null) {
@@ -281,6 +290,39 @@ class _StudioHomeState extends State<StudioHome> {
                         unawaited(_refreshInputDevices());
                       }
                     },
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Color(0xFF29414B),
+                      child: Icon(Icons.radio, color: Color(0xFFF2A33A)),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('RADIO AUTOMATION', style: TextStyle(fontWeight: FontWeight.w800)),
+                          SizedBox(height: 3),
+                          Text(
+                            'Open and operate web automation inside this encoder',
+                            style: TextStyle(color: Color(0xFFAAC0C8), fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.tonal(
+                      onPressed: _openAutomationBrowser,
+                      child: const Text('OPEN'),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 10),
             Card(
